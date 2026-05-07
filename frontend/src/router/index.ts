@@ -369,6 +369,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/launch-readiness',
+    name: 'AdminLaunchReadiness',
+    component: () => import('@/views/admin/LaunchReadinessView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Launch Readiness',
+      titleKey: 'admin.launchReadiness.title',
+      descriptionKey: 'admin.launchReadiness.description'
+    }
+  },
+  {
     path: '/admin/ops',
     name: 'AdminOps',
     component: () => import('@/views/admin/ops/OpsDashboard.vue'),

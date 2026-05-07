@@ -360,6 +360,7 @@ export default {
     accounts: '账号管理',
     proxies: 'IP管理',
     redeemCodes: '兑换码',
+    launchReadiness: '上线准备',
     ops: '运维监控',
     promoCodes: '优惠码',
     settings: '系统设置',
@@ -1380,6 +1381,28 @@ export default {
       systemSettings: '系统设置',
       configureSystem: '配置系统设置',
       failedToLoad: '加载仪表盘数据失败'
+    },
+
+    launchReadiness: {
+      eyebrow: '生产上线',
+      title: '上线准备中心',
+      description: '集中检查公网部署、系统初始化、Claude/Codex 网关、官方支付宝收费和运维收口状态。',
+      overallStatus: '整体状态',
+      completedChecks: '已完成检查',
+      generatedAt: '报告时间',
+      generatedHint: '刷新后会重新读取当前后台配置',
+      sectionComplete: '项已完成',
+      failedToLoad: '加载上线准备报告失败',
+      status: {
+        pass: '通过',
+        warn: '待收口',
+        fail: '需处理'
+      },
+      overall: {
+        blocked: '上线被阻断',
+        internalTestReady: '可内测，需收口',
+        launchReady: '可准备上线'
+      }
     },
 
     backup: {

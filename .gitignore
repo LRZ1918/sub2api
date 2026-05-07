@@ -123,6 +123,7 @@ scripts
 #openspec/
 code-reviews/
 AGENTS.md
+!AGENTS.md
 backend/cmd/server/server
 deploy/docker-compose.override.yml
 .gocache/
@@ -131,6 +132,8 @@ docs/*
 !docs/PAYMENT.md
 !docs/PAYMENT_CN.md
 !docs/ADMIN_PAYMENT_INTEGRATION_API.md
+!docs/superpowers/
+!docs/superpowers/**
 .serena/
 .codex/
 frontend/coverage/

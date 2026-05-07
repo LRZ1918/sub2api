@@ -360,6 +360,7 @@ export default {
     accounts: 'Accounts',
     proxies: 'Proxies',
     redeemCodes: 'Redeem Codes',
+    launchReadiness: 'Launch Readiness',
     ops: 'Ops',
     promoCodes: 'Promo Codes',
     settings: 'Settings',
@@ -1359,6 +1360,28 @@ export default {
       requestsShort: 'Req',
       tokensShort: 'Tok',
       failedToLoad: 'Failed to load dashboard statistics'
+    },
+
+    launchReadiness: {
+      eyebrow: 'Production Launch',
+      title: 'Launch Readiness',
+      description: 'Review public deployment, system setup, Claude/Codex gateway, official Alipay billing, and operations readiness in one place.',
+      overallStatus: 'Overall Status',
+      completedChecks: 'Completed Checks',
+      generatedAt: 'Report Time',
+      generatedHint: 'Refresh to read the latest admin configuration',
+      sectionComplete: 'checks complete',
+      failedToLoad: 'Failed to load launch readiness report',
+      status: {
+        pass: 'Passed',
+        warn: 'Needs Review',
+        fail: 'Action Needed'
+      },
+      overall: {
+        blocked: 'Launch Blocked',
+        internalTestReady: 'Internal Test Ready',
+        launchReady: 'Ready to Launch'
+      }
     },
 
     backup: {

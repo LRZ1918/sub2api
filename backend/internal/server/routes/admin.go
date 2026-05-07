@@ -19,6 +19,7 @@ func RegisterAdminRoutes(
 	{
 		// 仪表盘
 		registerDashboardRoutes(admin, h)
+		registerLaunchReadinessRoutes(admin, h)
 
 		// 用户管理
 		registerUserManagementRoutes(admin, h)
@@ -228,6 +229,10 @@ func registerDashboardRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		dashboard.GET("/user-breakdown", h.Admin.Dashboard.GetUserBreakdown)
 		dashboard.POST("/aggregation/backfill", h.Admin.Dashboard.BackfillAggregation)
 	}
+}
+
+func registerLaunchReadinessRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	admin.GET("/launch-readiness", h.Admin.LaunchReadiness.Get)
 }
 
 func registerUserManagementRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
