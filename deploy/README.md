@@ -15,6 +15,12 @@ This directory contains files for deploying Sub2API on Linux servers.
 |------|-------------|
 | `docker-compose.yml` | Docker Compose configuration (named volumes) |
 | `docker-compose.local.yml` | Docker Compose configuration (local directories, easy migration) |
+| `docker-compose.production.yml` | Production Docker Compose template with app port bound to `127.0.0.1` |
+| `production.env.example` | Production environment template with required secret placeholders |
+| `Caddyfile.production.example` | HTTPS reverse proxy template for production domains |
+| `ops/backup.sh` | Production backup helper for `.env`, app data, PostgreSQL, and Redis |
+| `ops/healthcheck.sh` | Production health check helper for containers and `/health` |
+| `PRODUCTION_LAUNCH_CN.md` | 中文公网正式上线手册 |
 | `docker-deploy.sh` | **One-click Docker deployment script (recommended)** |
 | `.env.example` | Docker environment variables template |
 | `DOCKER.md` | Docker Hub documentation |
