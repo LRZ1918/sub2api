@@ -66,6 +66,8 @@ export interface CheckoutInfoResponse {
   balance_disabled: boolean
   balance_recharge_multiplier: number
   recharge_fee_rate: number
+  pending_orders: number
+  max_pending_orders: number
   help_text: string
   help_image_url: string
   stripe_publishable_key: string
@@ -115,6 +117,7 @@ export interface SubscriptionPlan {
   original_price?: number
   validity_days: number
   validity_unit: string
+  product_name?: string
   /** Stored as JSON string in backend; API layer should parse before use */
   features: string[]
   for_sale: boolean

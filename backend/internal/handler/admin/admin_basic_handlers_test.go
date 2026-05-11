@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -53,6 +54,7 @@ func setupAdminRouter() (*gin.Engine, *stubAdminService) {
 	router.GET("/api/v1/admin/proxies/:id/accounts", proxyHandler.GetProxyAccounts)
 
 	router.GET("/api/v1/admin/redeem-codes", redeemHandler.List)
+	router.GET("/api/v1/admin/redeem-codes/stats", redeemHandler.GetStats)
 	router.GET("/api/v1/admin/redeem-codes/:id", redeemHandler.GetByID)
 	router.POST("/api/v1/admin/redeem-codes", redeemHandler.Generate)
 	router.DELETE("/api/v1/admin/redeem-codes/:id", redeemHandler.Delete)
@@ -207,6 +209,33 @@ func TestGroupHandlerEndpoints(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 }
 
+func TestGroupHandlerGetStatsUsesActualAPIKeys(t *testing.T) {
+	router, adminSvc := setupAdminRouter()
+	groupID := int64(2)
+	otherGroupID := int64(3)
+	adminSvc.apiKeys = []service.APIKey{
+		{ID: 10, GroupID: &groupID, Status: service.StatusActive},
+		{ID: 11, GroupID: &groupID, Status: service.StatusDisabled},
+		{ID: 12, GroupID: &groupID, Status: service.StatusActive},
+		{ID: 13, GroupID: &otherGroupID, Status: service.StatusActive},
+	}
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/groups/2/stats", nil)
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body struct {
+		Data struct {
+			TotalAPIKeys  int64 `json:"total_api_keys"`
+			ActiveAPIKeys int64 `json:"active_api_keys"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	require.Equal(t, int64(3), body.Data.TotalAPIKeys)
+	require.Equal(t, int64(2), body.Data.ActiveAPIKeys)
+}
+
 func TestProxyHandlerEndpoints(t *testing.T) {
 	router, _ := setupAdminRouter()
 
@@ -271,6 +300,36 @@ func TestProxyHandlerEndpoints(t *testing.T) {
 	require.Equal(t, http.StatusOK, rec.Code)
 }
 
+func TestProxyHandlerGetStatsUsesActualProxyAccounts(t *testing.T) {
+	router, adminSvc := setupAdminRouter()
+	adminSvc.proxyAccounts = []service.ProxyAccountSummary{
+		{ID: 1, Name: "proxy-account-1", Status: service.StatusActive},
+		{ID: 2, Name: "proxy-account-2", Status: service.StatusDisabled},
+		{ID: 3, Name: "proxy-account-3", Status: service.StatusError},
+	}
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/proxies/4/stats", nil)
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body struct {
+		Data struct {
+			TotalAccounts  int64   `json:"total_accounts"`
+			ActiveAccounts int64   `json:"active_accounts"`
+			TotalRequests  int64   `json:"total_requests"`
+			SuccessRate    float64 `json:"success_rate"`
+			AverageLatency int64   `json:"average_latency"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	require.Equal(t, int64(3), body.Data.TotalAccounts)
+	require.Equal(t, int64(1), body.Data.ActiveAccounts)
+	require.Equal(t, int64(0), body.Data.TotalRequests)
+	require.Equal(t, 0.0, body.Data.SuccessRate)
+	require.Equal(t, int64(0), body.Data.AverageLatency)
+}
+
 func TestRedeemHandlerEndpoints(t *testing.T) {
 	router, _ := setupAdminRouter()
 
@@ -311,4 +370,42 @@ func TestRedeemHandlerEndpoints(t *testing.T) {
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/admin/redeem-codes/5/stats", nil)
 	router.ServeHTTP(rec, req)
 	require.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestRedeemHandlerGetStatsUsesActualRedeemCodes(t *testing.T) {
+	router, adminSvc := setupAdminRouter()
+	usedBy := int64(7)
+	adminSvc.redeems = []service.RedeemCode{
+		{ID: 1, Code: "BAL-UNUSED", Type: service.RedeemTypeBalance, Value: 10, Status: service.StatusUnused},
+		{ID: 2, Code: "BAL-USED", Type: service.RedeemTypeBalance, Value: 20, Status: service.StatusUsed, UsedBy: &usedBy},
+		{ID: 3, Code: "CONC-USED", Type: service.RedeemTypeConcurrency, Value: 5, Status: service.StatusUsed, UsedBy: &usedBy},
+		{ID: 4, Code: "SUB-EXPIRED", Type: service.RedeemTypeSubscription, Value: 30, Status: service.StatusExpired},
+		{ID: 5, Code: "INVITE", Type: service.RedeemTypeInvitation, Value: 0, Status: service.StatusUnused},
+	}
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/admin/redeem-codes/stats", nil)
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var body struct {
+		Data struct {
+			TotalCodes            int64              `json:"total_codes"`
+			ActiveCodes           int64              `json:"active_codes"`
+			UsedCodes             int64              `json:"used_codes"`
+			ExpiredCodes          int64              `json:"expired_codes"`
+			TotalValueDistributed float64            `json:"total_value_distributed"`
+			ByType                map[string]float64 `json:"by_type"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
+	require.Equal(t, int64(5), body.Data.TotalCodes)
+	require.Equal(t, int64(2), body.Data.ActiveCodes)
+	require.Equal(t, int64(2), body.Data.UsedCodes)
+	require.Equal(t, int64(1), body.Data.ExpiredCodes)
+	require.Equal(t, 20.0, body.Data.TotalValueDistributed)
+	require.Equal(t, float64(2), body.Data.ByType[service.RedeemTypeBalance])
+	require.Equal(t, float64(1), body.Data.ByType[service.RedeemTypeConcurrency])
+	require.Equal(t, float64(1), body.Data.ByType[service.RedeemTypeSubscription])
+	require.Equal(t, float64(1), body.Data.ByType[service.RedeemTypeInvitation])
 }

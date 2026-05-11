@@ -6,6 +6,14 @@
         <button @click="loadPlans" :disabled="plansLoading" class="btn btn-secondary" :title="t('common.refresh')">
           <Icon name="refresh" size="md" :class="plansLoading ? 'animate-spin' : ''" />
         </button>
+        <button
+          type="button"
+          @click="importReferencePlans"
+          :disabled="plansLoading || importingReferencePlans"
+          class="btn btn-secondary"
+        >
+          {{ importingReferencePlans ? t('payment.admin.importingReferencePlans') : t('payment.admin.importReferencePlans') }}
+        </button>
         <button @click="openPlanEdit(null)" class="btn btn-primary">{{ t('payment.admin.createPlan') }}</button>
       </div>
 
@@ -29,8 +37,8 @@
         </template>
         <template #cell-price="{ value, row }">
           <div class="text-sm">
-            <span class="font-medium text-gray-900 dark:text-white">${{ (value ?? 0).toFixed(2) }}</span>
-            <span v-if="row.original_price" class="ml-1 text-xs text-gray-400 line-through">${{ row.original_price.toFixed(2) }}</span>
+            <span class="font-medium text-gray-900 dark:text-white">¥{{ (value ?? 0).toFixed(2) }}</span>
+            <span v-if="row.original_price" class="ml-1 text-xs text-gray-400 line-through">¥{{ row.original_price.toFixed(2) }}</span>
           </div>
         </template>
         <template #cell-validity_days="{ value, row }">
@@ -90,6 +98,11 @@ import Icon from '@/components/icons/Icon.vue'
 import GroupBadge from '@/components/common/GroupBadge.vue'
 import PlanEditDialog from './PlanEditDialog.vue'
 import { platformTextClass } from '@/utils/platformColors'
+import {
+  buildReferenceGroupPayload,
+  buildReferencePlanPayload,
+  referencePurchasePresets,
+} from './referencePurchasePresets'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -122,6 +135,7 @@ function getPlanNameClass(groupId: number): string {
 
 const plansLoading = ref(false)
 const plans = ref<SubscriptionPlan[]>([])
+const importingReferencePlans = ref(false)
 const showPlanDialog = ref(false)
 const showDeletePlanDialog = ref(false)
 const editingPlan = ref<SubscriptionPlan | null>(null)
@@ -159,6 +173,43 @@ function openPlanEdit(plan: SubscriptionPlan | null) {
   showPlanDialog.value = true
 }
 
+async function importReferencePlans() {
+  importingReferencePlans.value = true
+  try {
+    if (groups.value.length === 0) {
+      await loadGroups()
+    }
+    if (plans.value.length === 0) {
+      await loadPlans()
+    }
+
+    const groupsByName = new Map(groups.value.map(group => [group.name, group]))
+    for (const preset of referencePurchasePresets) {
+      let group = groupsByName.get(preset.group.name)
+      if (!group) {
+        group = await adminAPI.groups.create(buildReferenceGroupPayload(preset))
+        groups.value.push(group)
+        groupsByName.set(group.name, group)
+      }
+
+      const payload = buildReferencePlanPayload(preset, group.id)
+      const existingPlan = plans.value.find(plan => plan.name === preset.plan.name)
+      if (existingPlan) {
+        await adminPaymentAPI.updatePlan(existingPlan.id, payload)
+      } else {
+        await adminPaymentAPI.createPlan(payload)
+      }
+    }
+
+    appStore.showSuccess(t('payment.admin.referencePlansImported', { count: referencePurchasePresets.length }))
+    await loadGroups()
+    await loadPlans()
+  } catch (err: unknown) {
+    appStore.showError(extractI18nErrorMessage(err, t, 'payment.errors', t('common.error')))
+  } finally {
+    importingReferencePlans.value = false
+  }
+}
 
 /** Quick toggle for_sale from the list */
 async function toggleForSale(plan: SubscriptionPlan) {

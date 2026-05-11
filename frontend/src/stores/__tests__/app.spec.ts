@@ -295,6 +295,16 @@ describe('useAppStore', () => {
       expect(store.cachedPublicSettings).toBeNull()
     })
 
+    it('fetchPublicSettings 缓存兜底包含购买订阅配置默认值', async () => {
+      const store = useAppStore()
+      store.publicSettingsLoaded = true
+
+      const result = await store.fetchPublicSettings(false)
+
+      expect(result?.purchase_subscription_enabled).toBe(false)
+      expect(result?.purchase_subscription_url).toBe('')
+    })
+
     it('fetchPublicSettings(force) 会同步更新运行时注入配置', async () => {
       vi.mocked(getPublicSettings).mockResolvedValue({
         registration_enabled: false,

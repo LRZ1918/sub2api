@@ -37,6 +37,8 @@ var (
 	)
 )
 
+const defaultSiteSubtitle = "订阅转 API 转换平台"
+
 type SettingRepository interface {
 	Get(ctx context.Context, key string) (*Setting, error)
 	GetValue(ctx context.Context, key string) (string, error)
@@ -710,7 +712,7 @@ func (s *SettingService) GetPublicSettings(ctx context.Context) (*PublicSettings
 		TurnstileSiteKey:                 settings[SettingKeyTurnstileSiteKey],
 		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
 		SiteLogo:                         settings[SettingKeySiteLogo],
-		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
+		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, defaultSiteSubtitle),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],
 		DocURL:                           settings[SettingKeyDocURL],
@@ -2477,13 +2479,18 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 	if loginAgreementUpdatedAt == "" {
 		loginAgreementUpdatedAt = defaultLoginAgreementDate
 	}
+	frontendURL := strings.TrimSpace(settings[SettingKeyFrontendURL])
+	if frontendURL == "" && s.cfg != nil {
+		frontendURL = strings.TrimSpace(s.cfg.Server.FrontendURL)
+	}
+
 	result := &SystemSettings{
 		RegistrationEnabled:              settings[SettingKeyRegistrationEnabled] == "true",
 		EmailVerifyEnabled:               emailVerifyEnabled,
 		RegistrationEmailSuffixWhitelist: ParseRegistrationEmailSuffixWhitelist(settings[SettingKeyRegistrationEmailSuffixWhitelist]),
 		PromoCodeEnabled:                 settings[SettingKeyPromoCodeEnabled] != "false", // 默认启用
 		PasswordResetEnabled:             emailVerifyEnabled && settings[SettingKeyPasswordResetEnabled] == "true",
-		FrontendURL:                      settings[SettingKeyFrontendURL],
+		FrontendURL:                      frontendURL,
 		InvitationCodeEnabled:            settings[SettingKeyInvitationCodeEnabled] == "true",
 		TotpEnabled:                      settings[SettingKeyTotpEnabled] == "true",
 		LoginAgreementEnabled:            settings[SettingKeyLoginAgreementEnabled] == "true",
@@ -2501,7 +2508,7 @@ func (s *SettingService) parseSettings(settings map[string]string) *SystemSettin
 		TurnstileSecretKeyConfigured:     settings[SettingKeyTurnstileSecretKey] != "",
 		SiteName:                         s.getStringOrDefault(settings, SettingKeySiteName, "Sub2API"),
 		SiteLogo:                         settings[SettingKeySiteLogo],
-		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, "Subscription to API Conversion Platform"),
+		SiteSubtitle:                     s.getStringOrDefault(settings, SettingKeySiteSubtitle, defaultSiteSubtitle),
 		APIBaseURL:                       settings[SettingKeyAPIBaseURL],
 		ContactInfo:                      settings[SettingKeyContactInfo],
 		DocURL:                           settings[SettingKeyDocURL],

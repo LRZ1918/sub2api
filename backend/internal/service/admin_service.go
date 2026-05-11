@@ -21,6 +21,7 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/pkg/httpclient"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/logger"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/pagination"
+	"github.com/Wei-Shaw/sub2api/internal/pkg/usagestats"
 	"github.com/Wei-Shaw/sub2api/internal/util/httputil"
 )
 
@@ -510,6 +511,7 @@ const (
 )
 
 var ErrRPMStatusUnavailable = infraerrors.New(http.StatusNotImplemented, "RPM_STATUS_UNAVAILABLE", "RPM cache not available")
+var ErrUserUsageStatsUnavailable = infraerrors.New(http.StatusServiceUnavailable, "USER_USAGE_STATS_UNAVAILABLE", "usage statistics service is not configured")
 
 // adminServiceImpl implements AdminService
 type adminServiceImpl struct {
@@ -529,6 +531,7 @@ type adminServiceImpl struct {
 	settingService       *SettingService
 	defaultSubAssigner   DefaultSubscriptionAssigner
 	userSubRepo          UserSubscriptionRepository
+	usageRepo            UsageLogRepository
 	privacyClientFactory PrivacyClientFactory
 }
 
@@ -554,6 +557,7 @@ func NewAdminService(
 	settingService *SettingService,
 	defaultSubAssigner DefaultSubscriptionAssigner,
 	userSubRepo UserSubscriptionRepository,
+	usageRepo UsageLogRepository,
 	privacyClientFactory PrivacyClientFactory,
 ) AdminService {
 	return &adminServiceImpl{
@@ -573,6 +577,7 @@ func NewAdminService(
 		settingService:       settingService,
 		defaultSubAssigner:   defaultSubAssigner,
 		userSubRepo:          userSubRepo,
+		usageRepo:            usageRepo,
 		privacyClientFactory: privacyClientFactory,
 	}
 }
@@ -1001,14 +1006,61 @@ func (s *adminServiceImpl) GetUserRPMStatus(ctx context.Context, userID int64) (
 }
 
 func (s *adminServiceImpl) GetUserUsageStats(ctx context.Context, userID int64, period string) (any, error) {
-	// Return mock data for now
+	if s.usageRepo == nil {
+		return nil, ErrUserUsageStatsUnavailable
+	}
+
+	startTime, endTime := adminUserUsagePeriodRange(period, time.Now())
+	stats, err := s.usageRepo.GetStatsWithFilters(ctx, usagestats.UsageLogFilters{
+		UserID:    userID,
+		StartTime: startTime,
+		EndTime:   endTime,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("get user usage stats: %w", err)
+	}
+	if stats == nil {
+		stats = &usagestats.UsageStats{}
+	}
+
 	return map[string]any{
-		"period":          period,
-		"total_requests":  0,
-		"total_cost":      0.0,
-		"total_tokens":    0,
-		"avg_duration_ms": 0,
+		"period":              period,
+		"total_requests":      stats.TotalRequests,
+		"total_input_tokens":  stats.TotalInputTokens,
+		"total_output_tokens": stats.TotalOutputTokens,
+		"total_cache_tokens":  stats.TotalCacheTokens,
+		"total_tokens":        stats.TotalTokens,
+		"total_cost":          stats.TotalCost,
+		"total_actual_cost":   stats.TotalActualCost,
+		"total_account_cost":  stats.TotalAccountCost,
+		"avg_duration_ms":     stats.AverageDurationMs,
+		"average_duration_ms": stats.AverageDurationMs,
+		"endpoints":           stats.Endpoints,
+		"upstream_endpoints":  stats.UpstreamEndpoints,
+		"endpoint_paths":      stats.EndpointPaths,
 	}, nil
+}
+
+func adminUserUsagePeriodRange(period string, now time.Time) (*time.Time, *time.Time) {
+	end := now.UTC()
+	normalized := strings.ToLower(strings.TrimSpace(period))
+	var start time.Time
+
+	switch normalized {
+	case "today", "day":
+		year, month, day := end.Date()
+		start = time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
+	case "week":
+		start = end.AddDate(0, 0, -7)
+	case "year":
+		start = end.AddDate(-1, 0, 0)
+	case "all", "total":
+		return nil, &end
+	default:
+		start = end.AddDate(0, -1, 0)
+	}
+
+	return &start, &end
 }
 
 // GetUserBalanceHistory returns paginated balance/concurrency change records for a user.
@@ -3042,6 +3094,19 @@ func (s *adminServiceImpl) TestProxy(ctx context.Context, id int64) (*ProxyTestR
 	}
 
 	proxyURL := proxy.URL()
+	if s.proxyProber == nil {
+		message := "代理探测服务未配置"
+		s.saveProxyLatency(ctx, id, &ProxyLatencyInfo{
+			Success:   false,
+			Message:   message,
+			UpdatedAt: time.Now(),
+		})
+		return &ProxyTestResult{
+			Success: false,
+			Message: message,
+		}, nil
+	}
+
 	exitInfo, latencyMs, err := s.proxyProber.ProbeProxy(ctx, proxyURL)
 	if err != nil {
 		s.saveProxyLatency(ctx, id, &ProxyLatencyInfo{

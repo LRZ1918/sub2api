@@ -10,6 +10,7 @@ import { useAdminSettingsStore } from '@/stores/adminSettings'
 import { useNavigationLoadingState } from '@/composables/useNavigationLoading'
 import { useRoutePrefetch } from '@/composables/useRoutePrefetch'
 import { resolveDocumentTitle } from './title'
+import { canAccessPurchaseEntry, ensurePublicSettingsForGuard } from './guard-utils'
 
 /**
  * Route definitions with lazy loading
@@ -265,7 +266,7 @@ const routes: RouteRecordRaw[] = [
       title: 'Purchase Subscription',
       titleKey: 'nav.buySubscription',
       descriptionKey: 'purchase.description',
-      requiresPayment: true
+      requiresPurchaseEntry: true
     }
   },
   {
@@ -337,6 +338,18 @@ const routes: RouteRecordRaw[] = [
       requiresAdmin: false,
       title: 'Payment',
       requiresPayment: false
+    }
+  },
+  {
+    path: '/custom/model-square',
+    name: 'ModelSquare',
+    component: () => import('@/views/user/ModelSquareView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: false,
+      title: 'Model Square',
+      titleKey: 'modelSquare.title',
+      descriptionKey: 'modelSquare.description'
     }
   },
   {
@@ -718,8 +731,10 @@ router.beforeEach((to, _from, next) => {
     authInitialized = true
   }
 
-  // Set page title
   const appStore = useAppStore()
+  ensurePublicSettingsForGuard(appStore)
+
+  // Set page title
   // For custom pages, use menu item label as document title
   if (to.name === 'CustomPage') {
     const id = to.params.id as string
@@ -789,6 +804,13 @@ router.beforeEach((to, _from, next) => {
   if (to.meta.requiresPayment) {
     const paymentEnabled = appStore.cachedPublicSettings?.payment_enabled
     if (!paymentEnabled) {
+      next(authStore.isAdmin ? '/admin/dashboard' : '/dashboard')
+      return
+    }
+  }
+
+  if (to.meta.requiresPurchaseEntry) {
+    if (!canAccessPurchaseEntry(appStore.cachedPublicSettings)) {
       next(authStore.isAdmin ? '/admin/dashboard' : '/dashboard')
       return
     }

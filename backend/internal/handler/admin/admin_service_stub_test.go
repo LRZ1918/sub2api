@@ -16,6 +16,7 @@ type stubAdminService struct {
 	accounts             []service.Account
 	proxies              []service.Proxy
 	proxyCounts          []service.ProxyWithAccountCount
+	proxyAccounts        []service.ProxyAccountSummary
 	redeems              []service.RedeemCode
 	boundAuthIdentity    *service.AdminBindAuthIdentityInput
 	boundAuthIdentityFor int64
@@ -132,7 +133,10 @@ func newStubAdminService() *stubAdminService {
 		accounts:    []service.Account{account},
 		proxies:     []service.Proxy{proxy},
 		proxyCounts: []service.ProxyWithAccountCount{{Proxy: proxy, AccountCount: 1}},
-		redeems:     []service.RedeemCode{redeem},
+		proxyAccounts: []service.ProxyAccountSummary{
+			{ID: account.ID, Name: account.Name, Platform: account.Platform, Type: account.Type, Status: account.Status, Notes: account.Notes},
+		},
+		redeems: []service.RedeemCode{redeem},
 	}
 }
 
@@ -276,7 +280,13 @@ func (s *stubAdminService) DeleteGroup(ctx context.Context, id int64) error {
 }
 
 func (s *stubAdminService) GetGroupAPIKeys(ctx context.Context, groupID int64, page, pageSize int) ([]service.APIKey, int64, error) {
-	return s.apiKeys, int64(len(s.apiKeys)), nil
+	out := make([]service.APIKey, 0, len(s.apiKeys))
+	for _, key := range s.apiKeys {
+		if key.GroupID != nil && *key.GroupID == groupID {
+			out = append(out, key)
+		}
+	}
+	return out, int64(len(out)), nil
 }
 
 func (s *stubAdminService) GetGroupRateMultipliers(_ context.Context, _ int64) ([]service.UserGroupRateEntry, error) {
@@ -477,7 +487,7 @@ func (s *stubAdminService) BatchDeleteProxies(ctx context.Context, ids []int64) 
 }
 
 func (s *stubAdminService) GetProxyAccounts(ctx context.Context, proxyID int64) ([]service.ProxyAccountSummary, error) {
-	return []service.ProxyAccountSummary{{ID: 1, Name: "account"}}, nil
+	return s.proxyAccounts, nil
 }
 
 func (s *stubAdminService) CheckProxyExists(ctx context.Context, host string, port int, username, password string) (bool, error) {

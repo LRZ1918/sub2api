@@ -7,6 +7,34 @@
         ></div>
       </div>
 
+      <div v-else-if="affiliateDisabled" class="card px-6 py-16 text-center">
+        <div
+          class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-dark-800 dark:text-dark-300"
+        >
+          <Icon name="infoCircle" size="lg" />
+        </div>
+        <h2 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+          {{ t('affiliate.disabledTitle') }}
+        </h2>
+        <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-500 dark:text-dark-400">
+          {{ t('affiliate.disabledDesc') }}
+        </p>
+      </div>
+
+      <div v-else-if="affiliateUnavailable" class="card px-6 py-16 text-center">
+        <div
+          class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
+        >
+          <Icon name="exclamationTriangle" size="lg" />
+        </div>
+        <h2 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+          {{ t('affiliate.unavailableTitle') }}
+        </h2>
+        <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-500 dark:text-dark-400">
+          {{ t('affiliate.unavailableDesc') }}
+        </p>
+      </div>
+
       <template v-else-if="detail">
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div class="card p-5">
@@ -160,6 +188,12 @@ const { copyToClipboard } = useClipboard()
 const loading = ref(true)
 const transferring = ref(false)
 const detail = ref<UserAffiliateDetail | null>(null)
+const loadFailed = ref(false)
+
+const affiliateDisabled = computed(() => appStore.cachedPublicSettings?.affiliate_enabled === false)
+const affiliateUnavailable = computed(
+  () => !affiliateDisabled.value && (loadFailed.value || !detail.value),
+)
 
 const inviteLink = computed(() => {
   if (!detail.value) return ''
@@ -180,12 +214,19 @@ function formatCount(value: number): string {
 }
 
 async function loadAffiliateDetail(silent = false): Promise<void> {
+  if (affiliateDisabled.value) {
+    loading.value = false
+    return
+  }
   if (!silent) {
     loading.value = true
   }
   try {
+    loadFailed.value = false
     detail.value = await userAPI.getAffiliateDetail()
   } catch (error) {
+    loadFailed.value = true
+    detail.value = null
     appStore.showError(extractApiErrorMessage(error, t('affiliate.loadFailed')))
   } finally {
     if (!silent) {
@@ -221,7 +262,16 @@ async function transferQuota(): Promise<void> {
   }
 }
 
+async function initializeAffiliate() {
+  try {
+    await appStore.fetchPublicSettings()
+  } catch (err) {
+    console.error('Failed to refresh public settings:', err)
+  }
+  await loadAffiliateDetail()
+}
+
 onMounted(() => {
-  void loadAffiliateDetail()
+  void initializeAffiliate()
 })
 </script>

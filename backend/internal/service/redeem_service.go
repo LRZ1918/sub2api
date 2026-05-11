@@ -505,15 +505,51 @@ func (s *RedeemService) Delete(ctx context.Context, id int64) error {
 
 // GetStats 获取兑换码统计信息
 func (s *RedeemService) GetStats(ctx context.Context) (map[string]any, error) {
-	// TODO: 实现统计逻辑
-	// 统计未使用、已使用的兑换码数量
-	// 统计总面值等
-
+	const pageSize = 1000
 	stats := map[string]any{
-		"total_codes":  0,
-		"unused_codes": 0,
-		"used_codes":   0,
-		"total_value":  0.0,
+		"total_codes":               int64(0),
+		"unused_codes":              int64(0),
+		"used_codes":                int64(0),
+		"expired_codes":             int64(0),
+		"total_value":               0.0,
+		"total_balance_distributed": 0.0,
+		"by_type": map[string]int64{
+			RedeemTypeBalance:      0,
+			RedeemTypeConcurrency:  0,
+			RedeemTypeSubscription: 0,
+			RedeemTypeInvitation:   0,
+		},
+	}
+
+	byType := stats["by_type"].(map[string]int64)
+	for page := 1; ; page++ {
+		codes, result, err := s.redeemRepo.List(ctx, pagination.PaginationParams{Page: page, PageSize: pageSize})
+		if err != nil {
+			return nil, fmt.Errorf("list redeem codes for stats: %w", err)
+		}
+		if page == 1 && result != nil {
+			stats["total_codes"] = result.Total
+		}
+		for _, code := range codes {
+			byType[code.Type]++
+			if code.Value > 0 {
+				stats["total_value"] = stats["total_value"].(float64) + code.Value
+			}
+			switch code.Status {
+			case StatusUnused:
+				stats["unused_codes"] = stats["unused_codes"].(int64) + 1
+			case StatusUsed:
+				stats["used_codes"] = stats["used_codes"].(int64) + 1
+				if code.Type == RedeemTypeBalance && code.Value > 0 {
+					stats["total_balance_distributed"] = stats["total_balance_distributed"].(float64) + code.Value
+				}
+			case StatusExpired:
+				stats["expired_codes"] = stats["expired_codes"].(int64) + 1
+			}
+		}
+		if result == nil || len(codes) == 0 || int64(page*pageSize) >= result.Total {
+			break
+		}
 	}
 
 	return stats, nil

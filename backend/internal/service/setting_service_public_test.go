@@ -41,7 +41,11 @@ func (s *settingPublicRepoStub) SetMultiple(ctx context.Context, settings map[st
 }
 
 func (s *settingPublicRepoStub) GetAll(ctx context.Context) (map[string]string, error) {
-	panic("unexpected GetAll call")
+	out := make(map[string]string, len(s.values))
+	for key, value := range s.values {
+		out[key] = value
+	}
+	return out, nil
 }
 
 func (s *settingPublicRepoStub) Delete(ctx context.Context, key string) error {
@@ -76,6 +80,24 @@ func TestSettingService_GetPublicSettings_ExposesTablePreferences(t *testing.T) 
 	require.NoError(t, err)
 	require.Equal(t, 50, settings.TableDefaultPageSize)
 	require.Equal(t, []int{20, 50, 100}, settings.TablePageSizeOptions)
+}
+
+func TestSettingService_GetPublicSettings_UsesChineseSiteSubtitleDefault(t *testing.T) {
+	svc := NewSettingService(&settingPublicRepoStub{values: map[string]string{}}, &config.Config{})
+
+	settings, err := svc.GetPublicSettings(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, "订阅转 API 转换平台", settings.SiteSubtitle)
+}
+
+func TestSettingService_GetAllSettings_FallsBackToConfigFrontendURL(t *testing.T) {
+	svc := NewSettingService(&settingPublicRepoStub{values: map[string]string{}}, &config.Config{
+		Server: config.ServerConfig{FrontendURL: "https://api.example.com"},
+	})
+
+	settings, err := svc.GetAllSettings(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, "https://api.example.com", settings.FrontendURL)
 }
 
 func TestSettingService_GetPublicSettings_ExposesForceEmailOnThirdPartySignup(t *testing.T) {

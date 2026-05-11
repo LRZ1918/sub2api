@@ -266,13 +266,24 @@ func (h *ProxyHandler) GetStats(c *gin.Context) {
 		return
 	}
 
-	// Return mock data for now
-	_ = proxyID
+	accounts, err := h.adminService.GetProxyAccounts(c.Request.Context(), proxyID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	var activeAccounts int64
+	for _, account := range accounts {
+		if account.Status == service.StatusActive {
+			activeAccounts++
+		}
+	}
+
 	response.Success(c, gin.H{
-		"total_accounts":  0,
-		"active_accounts": 0,
+		"total_accounts":  int64(len(accounts)),
+		"active_accounts": activeAccounts,
 		"total_requests":  0,
-		"success_rate":    100.0,
+		"success_rate":    0.0,
 		"average_latency": 0,
 	})
 }

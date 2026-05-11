@@ -2,10 +2,12 @@ package admin
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/handler/dto"
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
@@ -25,6 +27,16 @@ type GroupHandler struct {
 type optionalLimitField struct {
 	set   bool
 	value *float64
+}
+
+type groupStatsResponse struct {
+	TotalAPIKeys  int64   `json:"total_api_keys"`
+	ActiveAPIKeys int64   `json:"active_api_keys"`
+	TotalRequests int64   `json:"total_requests"`
+	TotalTokens   int64   `json:"total_tokens"`
+	TotalCost     float64 `json:"total_cost"`
+	ActualCost    float64 `json:"actual_cost"`
+	AccountCost   float64 `json:"account_cost"`
 }
 
 func (f *optionalLimitField) UnmarshalJSON(data []byte) error {
@@ -368,14 +380,54 @@ func (h *GroupHandler) GetStats(c *gin.Context) {
 		return
 	}
 
-	// Return mock data for now
-	response.Success(c, gin.H{
-		"total_api_keys":  0,
-		"active_api_keys": 0,
-		"total_requests":  0,
-		"total_cost":      0.0,
-	})
-	_ = groupID // TODO: implement actual stats
+	stats, err := h.loadGroupStats(c.Request.Context(), groupID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, stats)
+}
+
+func (h *GroupHandler) loadGroupStats(ctx context.Context, groupID int64) (*groupStatsResponse, error) {
+	const pageSize = 1000
+	stats := &groupStatsResponse{}
+
+	for page := 1; ; page++ {
+		keys, total, err := h.adminService.GetGroupAPIKeys(ctx, groupID, page, pageSize)
+		if err != nil {
+			return nil, fmt.Errorf("get group api keys for stats: %w", err)
+		}
+		if page == 1 {
+			stats.TotalAPIKeys = total
+		}
+		for _, key := range keys {
+			if key.Status == service.StatusActive {
+				stats.ActiveAPIKeys++
+			}
+		}
+		if len(keys) == 0 || int64(page*pageSize) >= total {
+			break
+		}
+	}
+
+	if h.dashboardService != nil {
+		groupStats, err := h.dashboardService.GetGroupStatsWithFilters(ctx, time.Time{}, time.Now(), 0, 0, 0, groupID, nil, nil, nil)
+		if err != nil {
+			return nil, fmt.Errorf("get group usage stats: %w", err)
+		}
+		for _, item := range groupStats {
+			if item.GroupID == groupID {
+				stats.TotalRequests = item.Requests
+				stats.TotalTokens = item.TotalTokens
+				stats.TotalCost = item.Cost
+				stats.ActualCost = item.ActualCost
+				stats.AccountCost = item.AccountCost
+				break
+			}
+		}
+	}
+
+	return stats, nil
 }
 
 // GetUsageSummary returns today's and cumulative cost for all groups.

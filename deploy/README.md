@@ -18,6 +18,7 @@ This directory contains files for deploying Sub2API on Linux servers.
 | `docker-compose.production.yml` | Production Docker Compose template with app port bound to `127.0.0.1` |
 | `production.env.example` | Production environment template with required secret placeholders |
 | `Caddyfile.production.example` | HTTPS reverse proxy template for production domains |
+| `PRODUCTION_INPUTS_CN.md` | 中文生产上线资料清单，用于部署前收集域名、密钥、上游账号、代理和支付资料 |
 | `ops/backup.sh` | Production backup helper for `.env`, app data, PostgreSQL, and Redis |
 | `ops/healthcheck.sh` | Production health check helper for containers and `/health` |
 | `PRODUCTION_LAUNCH_CN.md` | 中文公网正式上线手册 |

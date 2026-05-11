@@ -1,11 +1,13 @@
 import { getConfiguredTableDefaultPageSize, normalizeTablePageSize } from '@/utils/tablePreferences'
 
 const STORAGE_KEY = 'table-page-size'
+const LEGACY_SOURCE_KEY = 'table-page-size-source'
 
 export function getPersistedPageSize(fallback = getConfiguredTableDefaultPageSize()): number {
   if (typeof window !== 'undefined') {
     try {
-      const stored = window.localStorage.getItem(STORAGE_KEY)
+      const storedSource = window.localStorage.getItem(LEGACY_SOURCE_KEY)
+      const stored = storedSource === 'user' ? null : window.localStorage.getItem(STORAGE_KEY)
       if (stored !== null) {
         const parsed = Number(stored)
         if (Number.isFinite(parsed)) {

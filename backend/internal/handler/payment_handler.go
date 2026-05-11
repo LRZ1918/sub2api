@@ -97,6 +97,10 @@ func (h *PaymentHandler) GetChannels(c *gin.Context) {
 // GET /api/v1/payment/checkout-info
 func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 	ctx := c.Request.Context()
+	subject, ok := requireAuth(c)
+	if !ok {
+		return
+	}
 
 	// Fetch limits (methods + global range)
 	limitsResp, err := h.configService.GetAvailableMethodLimits(ctx)
@@ -111,6 +115,12 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 		response.ErrorFrom(c, err)
 		return
 	}
+	pendingOrders, err := h.paymentService.CountPendingOrders(ctx, subject.UserID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	maxPendingOrders := service.EffectiveMaxPendingOrders(cfg.MaxPendingOrders)
 
 	// Fetch plans with group info
 	plans, _ := h.configService.ListPlansForSale(ctx)
@@ -138,6 +148,8 @@ func (h *PaymentHandler) GetCheckoutInfo(c *gin.Context) {
 		BalanceDisabled:           cfg.BalanceDisabled,
 		BalanceRechargeMultiplier: cfg.BalanceRechargeMultiplier,
 		RechargeFeeRate:           cfg.RechargeFeeRate,
+		PendingOrders:             pendingOrders,
+		MaxPendingOrders:          maxPendingOrders,
 		HelpText:                  cfg.HelpText,
 		HelpImageURL:              cfg.HelpImageURL,
 		StripePublishableKey:      cfg.StripePublishableKey,
@@ -152,6 +164,8 @@ type checkoutInfoResponse struct {
 	BalanceDisabled           bool                            `json:"balance_disabled"`
 	BalanceRechargeMultiplier float64                         `json:"balance_recharge_multiplier"`
 	RechargeFeeRate           float64                         `json:"recharge_fee_rate"`
+	PendingOrders             int                             `json:"pending_orders"`
+	MaxPendingOrders          int                             `json:"max_pending_orders"`
 	HelpText                  string                          `json:"help_text"`
 	HelpImageURL              string                          `json:"help_image_url"`
 	StripePublishableKey      string                          `json:"stripe_publishable_key"`

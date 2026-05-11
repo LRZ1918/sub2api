@@ -181,11 +181,19 @@ const chartColors = [
   '#84cc16'
 ]
 
+const numericValue = (value: unknown): number => {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : 0
+}
+
+const getMetricValue = (group: GroupStat): number => {
+  return numericValue(props.metric === 'actual_cost' ? group.actual_cost : group.total_tokens)
+}
+
 const displayGroupStats = computed(() => {
   if (!props.groupStats?.length) return []
 
-  const metricKey = props.metric === 'actual_cost' ? 'actual_cost' : 'total_tokens'
-  return [...props.groupStats].sort((a, b) => b[metricKey] - a[metricKey])
+  return [...props.groupStats].sort((a, b) => getMetricValue(b) - getMetricValue(a))
 })
 
 const chartData = computed(() => {
@@ -195,7 +203,7 @@ const chartData = computed(() => {
     labels: displayGroupStats.value.map((g) => g.group_name || String(g.group_id)),
     datasets: [
       {
-        data: displayGroupStats.value.map((g) => props.metric === 'actual_cost' ? g.actual_cost : g.total_tokens),
+        data: displayGroupStats.value.map((g) => getMetricValue(g)),
         backgroundColor: chartColors.slice(0, displayGroupStats.value.length),
         borderWidth: 0
       }
@@ -213,8 +221,8 @@ const doughnutOptions = computed(() => ({
     tooltip: {
       callbacks: {
         label: (context: any) => {
-          const value = context.raw as number
-          const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0)
+          const value = numericValue(context.raw)
+          const total = context.dataset.data.reduce((a: number, b: unknown) => a + numericValue(b), 0)
           const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0'
           const formattedValue = props.metric === 'actual_cost'
             ? `$${formatCost(value)}`
@@ -226,29 +234,31 @@ const doughnutOptions = computed(() => ({
   }
 }))
 
-const formatTokens = (value: number): string => {
-  if (value >= 1_000_000_000) {
-    return `${(value / 1_000_000_000).toFixed(2)}B`
-  } else if (value >= 1_000_000) {
-    return `${(value / 1_000_000).toFixed(2)}M`
-  } else if (value >= 1_000) {
-    return `${(value / 1_000).toFixed(2)}K`
+const formatTokens = (value: number | null | undefined): string => {
+  const safeValue = numericValue(value)
+  if (safeValue >= 1_000_000_000) {
+    return `${(safeValue / 1_000_000_000).toFixed(2)}B`
+  } else if (safeValue >= 1_000_000) {
+    return `${(safeValue / 1_000_000).toFixed(2)}M`
+  } else if (safeValue >= 1_000) {
+    return `${(safeValue / 1_000).toFixed(2)}K`
   }
-  return value.toLocaleString()
+  return safeValue.toLocaleString()
 }
 
-const formatNumber = (value: number): string => {
-  return value.toLocaleString()
+const formatNumber = (value: number | null | undefined): string => {
+  return numericValue(value).toLocaleString()
 }
 
-const formatCost = (value: number): string => {
-  if (value >= 1000) {
-    return (value / 1000).toFixed(2) + 'K'
-  } else if (value >= 1) {
-    return value.toFixed(2)
-  } else if (value >= 0.01) {
-    return value.toFixed(3)
+const formatCost = (value: number | null | undefined): string => {
+  const safeValue = numericValue(value)
+  if (safeValue >= 1000) {
+    return (safeValue / 1000).toFixed(2) + 'K'
+  } else if (safeValue >= 1) {
+    return safeValue.toFixed(2)
+  } else if (safeValue >= 0.01) {
+    return safeValue.toFixed(3)
   }
-  return value.toFixed(4)
+  return safeValue.toFixed(4)
 }
 </script>

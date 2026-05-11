@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"log"
+	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -113,5 +115,17 @@ func registerRoutes(
 	routes.RegisterGatewayRoutes(r, h, apiKeyAuth, apiKeyService, subscriptionService, opsService, settingService, cfg)
 	routes.RegisterPaymentRoutes(v1, h.Payment, h.PaymentWebhook, h.Admin.Payment, jwtAuth, adminAuth, settingService)
 
-	handler.RegisterPageRoutes(v1, cfg.Pricing.DataDir, gin.HandlerFunc(jwtAuth), gin.HandlerFunc(adminAuth), settingService)
+	handler.RegisterPageRoutes(v1, resolvePageContentDataDir(cfg), gin.HandlerFunc(jwtAuth), gin.HandlerFunc(adminAuth), settingService)
+}
+
+func resolvePageContentDataDir(cfg *config.Config) string {
+	if dataDir := strings.TrimSpace(os.Getenv("DATA_DIR")); dataDir != "" {
+		return dataDir
+	}
+	if cfg != nil {
+		if dataDir := strings.TrimSpace(cfg.Pricing.DataDir); dataDir != "" {
+			return dataDir
+		}
+	}
+	return "./data"
 }

@@ -4277,6 +4277,53 @@
             </div>
           </div>
 
+          <!-- Purchase Subscription Entry -->
+          <div class="card">
+            <div
+              class="border-b border-gray-100 px-6 py-4 dark:border-dark-700"
+            >
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t("admin.settings.purchase.title") }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ t("admin.settings.purchase.description") }}
+              </p>
+            </div>
+            <div class="space-y-5 p-6">
+              <div class="flex items-center justify-between gap-4">
+                <div>
+                  <label class="font-medium text-gray-900 dark:text-white">{{
+                    t("admin.settings.purchase.enabled")
+                  }}</label>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.purchase.enabledHint") }}
+                  </p>
+                </div>
+                <Toggle v-model="form.purchase_subscription_enabled" />
+              </div>
+
+              <div>
+                <label
+                  class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  {{ t("admin.settings.purchase.url") }}
+                </label>
+                <input
+                  v-model="form.purchase_subscription_url"
+                  type="url"
+                  class="input font-mono text-sm"
+                  :placeholder="t('admin.settings.purchase.urlPlaceholder')"
+                />
+                <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  {{ t("admin.settings.purchase.urlHint") }}
+                </p>
+                <p class="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                  {{ t("admin.settings.purchase.iframeWarning") }}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <!-- Custom Menu Items -->
           <div class="card">
             <div
@@ -4674,6 +4721,190 @@
 
 	        <!-- Tab: Features (功能开关) -->
         <div v-show="activeTab === 'features'" class="space-y-6">
+        <div class="card">
+          <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                  {{ t('admin.settings.userPortal.title') }}
+                </h2>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {{ t('admin.settings.userPortal.description') }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="btn btn-primary btn-sm shrink-0"
+                @click="applyEnhancedUserPortalPreset"
+              >
+                {{ t('admin.settings.userPortal.applyEnhancedPreset') }}
+              </button>
+            </div>
+          </div>
+          <div class="space-y-5 p-6">
+            <div>
+              <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                {{ t('admin.settings.userPortal.menuPreview') }}
+              </h3>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <span
+                  v-for="item in userPortalMenuPreview"
+                  :key="item.key"
+                  class="rounded-full border px-3 py-1 text-xs font-medium"
+                  :class="item.enabled
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-900/20 dark:text-emerald-300'
+                    : 'border-gray-200 bg-gray-50 text-gray-500 dark:border-dark-700 dark:bg-dark-800 dark:text-dark-400'"
+                >
+                  {{ item.label }}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                {{ t('admin.settings.userPortal.featureControls') }}
+              </h3>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('admin.settings.userPortal.featureControlsHint') }}
+              </p>
+              <div class="mt-3 divide-y divide-gray-100 rounded-lg border border-gray-200 dark:divide-dark-700 dark:border-dark-700">
+                <div class="flex items-center justify-between gap-4 px-4 py-3">
+                  <div>
+                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      {{ t('admin.settings.userPortal.registrationEntry') }}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.userPortal.registrationEntryHint') }}
+                    </p>
+                  </div>
+                  <Toggle
+                    v-model="form.registration_enabled"
+                    data-testid="user-portal-toggle-registration"
+                  />
+                </div>
+
+                <div class="flex items-center justify-between gap-4 px-4 py-3">
+                  <div>
+                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      {{ t('admin.settings.userPortal.nativePaymentEntry') }}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.userPortal.nativePaymentEntryHint') }}
+                    </p>
+                  </div>
+                  <Toggle
+                    v-model="form.payment_enabled"
+                    data-testid="user-portal-toggle-payment"
+                  />
+                </div>
+
+                <div class="space-y-3 px-4 py-3">
+                  <div class="flex items-center justify-between gap-4">
+                    <div>
+                      <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                        {{ t('admin.settings.userPortal.externalPurchaseEntry') }}
+                      </p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">
+                        {{ t('admin.settings.userPortal.externalPurchaseEntryHint') }}
+                      </p>
+                    </div>
+                    <Toggle
+                      v-model="form.purchase_subscription_enabled"
+                      data-testid="user-portal-toggle-purchase"
+                    />
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                      {{ t('admin.settings.userPortal.externalPurchaseUrl') }}
+                    </label>
+                    <input
+                      v-model="form.purchase_subscription_url"
+                      data-testid="user-portal-purchase-url"
+                      type="url"
+                      class="input font-mono text-sm"
+                      :placeholder="t('admin.settings.purchase.urlPlaceholder')"
+                    />
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between gap-4 px-4 py-3">
+                  <div>
+                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      {{ t('admin.settings.userPortal.availableChannelsEntry') }}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.userPortal.availableChannelsEntryHint') }}
+                    </p>
+                  </div>
+                  <Toggle
+                    v-model="form.available_channels_enabled"
+                    data-testid="user-portal-toggle-available-channels"
+                  />
+                </div>
+
+                <div class="flex items-center justify-between gap-4 px-4 py-3">
+                  <div>
+                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      {{ t('admin.settings.userPortal.channelStatusEntry') }}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.userPortal.channelStatusEntryHint') }}
+                    </p>
+                  </div>
+                  <Toggle
+                    v-model="form.channel_monitor_enabled"
+                    data-testid="user-portal-toggle-channel-status"
+                  />
+                </div>
+
+                <div class="flex items-center justify-between gap-4 px-4 py-3">
+                  <div>
+                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      {{ t('admin.settings.userPortal.affiliateEntry') }}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.userPortal.affiliateEntryHint') }}
+                    </p>
+                  </div>
+                  <Toggle
+                    v-model="form.affiliate_enabled"
+                    data-testid="user-portal-toggle-affiliate"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                {{ t('admin.settings.userPortal.dependencySummary') }}
+              </h3>
+              <div class="mt-3 grid gap-3 md:grid-cols-3">
+                <div
+                  v-for="item in userPortalDependencies"
+                  :key="item.key"
+                  class="rounded-lg border border-gray-200 p-3 text-sm dark:border-dark-700"
+                >
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="font-medium text-gray-800 dark:text-gray-200">
+                      {{ item.label }}
+                    </span>
+                    <span
+                      class="rounded-full px-2 py-0.5 text-xs font-medium"
+                      :class="item.ready
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'"
+                    >
+                      {{ item.status }}
+                    </span>
+                  </div>
+                  <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    {{ item.hint }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div class="card">
           <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
@@ -6455,13 +6686,15 @@ const form = reactive<SettingsForm>({
   default_user_rpm_limit: 0,
   site_name: "Sub2API",
   site_logo: "",
-  site_subtitle: "Subscription to API Conversion Platform",
+  site_subtitle: "订阅转 API 转换平台",
   api_base_url: "",
   contact_info: "",
   doc_url: "",
   home_content: "",
   backend_mode_enabled: false,
   hide_ccs_import_button: false,
+  purchase_subscription_enabled: false,
+  purchase_subscription_url: "",
   payment_enabled: false,
   risk_control_enabled: false,
   payment_min_amount: 1,
@@ -6616,6 +6849,166 @@ const form = reactive<SettingsForm>({
   // Affiliate (邀请返利) feature switch
   affiliate_enabled: false,
 });
+
+const userPortalCoreMenu = computed(() => [
+  { key: "dashboard", label: t("nav.dashboard"), enabled: true },
+  { key: "keys", label: t("nav.apiKeys"), enabled: true },
+  { key: "usage", label: t("nav.usage"), enabled: true },
+  { key: "subscriptions", label: t("nav.mySubscriptions"), enabled: true },
+  {
+    key: "purchase",
+    label: t("nav.buySubscription"),
+    enabled: form.payment_enabled || form.purchase_subscription_enabled,
+  },
+  { key: "redeem", label: t("nav.redeem"), enabled: true },
+  { key: "profile", label: t("nav.profile"), enabled: true },
+  {
+    key: "model-square",
+    label: t("nav.modelSquare"),
+    enabled: form.available_channels_enabled,
+  },
+  {
+    key: "available-channels",
+    label: t("nav.availableChannels"),
+    enabled: form.available_channels_enabled,
+  },
+  {
+    key: "channel-status",
+    label: t("nav.channelStatus"),
+    enabled: form.channel_monitor_enabled,
+  },
+  { key: "orders", label: t("nav.myOrders"), enabled: form.payment_enabled },
+  { key: "affiliate", label: t("nav.affiliate"), enabled: form.affiliate_enabled },
+]);
+
+const userPortalMenuPreview = computed(() => [
+  ...userPortalCoreMenu.value,
+  ...form.custom_menu_items
+    .filter((item) => item.visibility === "user")
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((item) => ({
+      key: `custom-${item.id || item.label}`,
+      label: item.label || t("admin.settings.userPortal.customPageFallback"),
+      enabled: true,
+    })),
+]);
+
+const userPortalSMTPConfigured = computed(() => {
+  if (!form.email_verify_enabled) return true;
+  return (
+    form.smtp_host.trim() !== "" &&
+    Number(form.smtp_port) > 0 &&
+    form.smtp_username.trim() !== "" &&
+    (form.smtp_password_configured || form.smtp_password.trim() !== "") &&
+    form.smtp_from_email.trim() !== ""
+  );
+});
+
+const userPortalAffiliateReady = computed(() => {
+  if (!form.affiliate_enabled) return true;
+  return Number(form.affiliate_rebate_rate) > 0;
+});
+
+const userPortalDependencies = computed(() => [
+  {
+    key: "registration",
+    label: t("admin.settings.userPortal.registrationEntry"),
+    hint: t("admin.settings.userPortal.registrationDependency"),
+    ready: !form.registration_enabled || userPortalSMTPConfigured.value,
+    status: !form.registration_enabled
+      ? t("admin.settings.userPortal.statusDisabled")
+      : userPortalSMTPConfigured.value
+        ? t("admin.settings.userPortal.statusEnabled")
+        : t("admin.settings.userPortal.statusNeedsSmtp"),
+  },
+  {
+    key: "native-payment",
+    label: t("nav.buySubscription"),
+    hint: t("admin.settings.userPortal.nativePaymentDependency"),
+    ready: form.payment_enabled && form.payment_enabled_types.length > 0,
+    status: form.payment_enabled
+      ? t("admin.settings.userPortal.statusEnabled")
+      : t("admin.settings.userPortal.statusDisabled"),
+  },
+  {
+    key: "external-purchase",
+    label: t("admin.settings.purchase.title"),
+    hint: t("admin.settings.userPortal.externalPurchaseDependency"),
+    ready:
+      !form.purchase_subscription_enabled ||
+      /^https?:\/\//i.test(form.purchase_subscription_url.trim()),
+    status: form.purchase_subscription_enabled
+      ? t("admin.settings.userPortal.statusEnabled")
+      : t("admin.settings.userPortal.statusOptional"),
+  },
+  {
+    key: "available-channels",
+    label: t("nav.availableChannels"),
+    hint: t("admin.settings.userPortal.availableChannelsDependency"),
+    ready: form.available_channels_enabled,
+    status: form.available_channels_enabled
+      ? t("admin.settings.userPortal.statusEnabled")
+      : t("admin.settings.userPortal.statusDisabled"),
+  },
+  {
+    key: "model-square",
+    label: t("nav.modelSquare"),
+    hint: t("admin.settings.userPortal.modelSquareDependency"),
+    ready: form.available_channels_enabled,
+    status: form.available_channels_enabled
+      ? t("admin.settings.userPortal.statusEnabled")
+      : t("admin.settings.userPortal.statusDisabled"),
+  },
+  {
+    key: "channel-status",
+    label: t("nav.channelStatus"),
+    hint: t("admin.settings.userPortal.channelStatusDependency"),
+    ready: form.channel_monitor_enabled,
+    status: form.channel_monitor_enabled
+      ? t("admin.settings.userPortal.statusEnabled")
+      : t("admin.settings.userPortal.statusDisabled"),
+  },
+  {
+    key: "affiliate",
+    label: t("nav.affiliate"),
+    hint: t("admin.settings.userPortal.affiliateDependency"),
+    ready: userPortalAffiliateReady.value,
+    status: !form.affiliate_enabled
+      ? t("admin.settings.userPortal.statusDisabled")
+      : userPortalAffiliateReady.value
+        ? t("admin.settings.userPortal.statusConfigured")
+        : t("admin.settings.userPortal.statusNeedsRebateRate"),
+  },
+  {
+    key: "custom-page",
+    label: t("customPage.title"),
+    hint: t("admin.settings.userPortal.customPageDependency"),
+    ready: form.custom_menu_items.some(
+      (item) => item.visibility === "user" && item.url.trim() !== "",
+    ),
+    status: form.custom_menu_items.some((item) => item.visibility === "user")
+      ? t("admin.settings.userPortal.statusConfigured")
+      : t("admin.settings.userPortal.statusNotConfigured"),
+  },
+]);
+
+function applyEnhancedUserPortalPreset() {
+  form.registration_enabled = true;
+  form.default_balance = 0.01;
+  form.default_concurrency = 5;
+  form.payment_enabled = true;
+  form.payment_min_amount = 1;
+  form.payment_max_amount = 10000;
+  form.payment_max_pending_orders = 3;
+  if (!form.payment_enabled_types.includes("alipay")) {
+    form.payment_enabled_types = [...form.payment_enabled_types, "alipay"];
+  }
+  form.available_channels_enabled = true;
+  form.channel_monitor_enabled = true;
+  form.affiliate_enabled = true;
+
+  appStore.showSuccess(t("admin.settings.userPortal.enhancedPresetApplied"));
+}
 
 const authSourceDefaults = reactive<AuthSourceDefaultsState>(
   buildAuthSourceDefaultsState({}),
@@ -7573,6 +7966,8 @@ async function saveSettings() {
       home_content: form.home_content,
       backend_mode_enabled: form.backend_mode_enabled,
       hide_ccs_import_button: form.hide_ccs_import_button,
+      purchase_subscription_enabled: form.purchase_subscription_enabled,
+      purchase_subscription_url: form.purchase_subscription_url.trim(),
       table_default_page_size: form.table_default_page_size,
       table_page_size_options: form.table_page_size_options,
       custom_menu_items: form.custom_menu_items,

@@ -102,6 +102,8 @@ interface RouteMeta {
   }>
   icon?: string // Icon for navigation menu
   hideInMenu?: boolean // Hide from navigation menu
+  requiresPayment?: boolean // Requires native payment to be enabled
+  requiresPurchaseEntry?: boolean // Requires native payment or external purchase entry
 }
 ```
 

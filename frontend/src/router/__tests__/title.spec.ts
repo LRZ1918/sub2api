@@ -1,7 +1,27 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import en from '@/i18n/locales/en'
+import zh from '@/i18n/locales/zh'
+
+vi.mock('@/i18n', () => ({
+  i18n: {
+    global: {
+      t: (key: string) => (key === 'common.login' ? '登录' : key),
+    },
+  },
+}))
+
 import { resolveDocumentTitle } from '@/router/title'
 
 describe('resolveDocumentTitle', () => {
+  it('uses translated titleKey for the login page', () => {
+    expect(resolveDocumentTitle('Login', 'Sub2API', 'common.login')).toBe('登录 - Sub2API')
+  })
+
+  it('defines the login title in both bundled locales', () => {
+    expect(zh.common.login).toBe('登录')
+    expect(en.common.login).toBe('Login')
+  })
+
   it('路由存在标题时，使用“路由标题 - 站点名”格式', () => {
     expect(resolveDocumentTitle('Usage Records', 'My Site')).toBe('Usage Records - My Site')
   })

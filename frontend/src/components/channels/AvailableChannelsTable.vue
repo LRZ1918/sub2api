@@ -22,6 +22,12 @@
           <td colspan="5" class="py-12 text-center">
             <Icon name="inbox" size="xl" class="mx-auto mb-3 h-12 w-12 text-gray-400" />
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ emptyLabel }}</p>
+            <p
+              v-if="emptyDescription"
+              class="mx-auto mt-2 max-w-xl text-xs leading-5 text-gray-400 dark:text-gray-500"
+            >
+              {{ emptyDescription }}
+            </p>
           </td>
         </tr>
       </tbody>
@@ -169,6 +175,7 @@ const props = defineProps<{
   noPricingLabel: string
   noModelsLabel: string
   emptyLabel: string
+  emptyDescription?: string
   /** 用户专属倍率（group_id → multiplier）；无专属时由 GroupBadge 仅显示默认倍率。 */
   userGroupRates: Record<number, number>
 }>()

@@ -159,6 +159,23 @@ vi.mock("vue-i18n", async () => {
     "admin.settings.paymentVisibleMethods.sourceRequiredError": "{title} 已启用，请先选择支付来源。",
     "admin.settings.payment.configGuide": "查看支付配置说明",
     "admin.settings.payment.findProvider": "查看支持的支付方式",
+    "admin.settings.userPortal.title": "用户端功能总览",
+    "admin.settings.userPortal.description": "集中预览普通用户侧边栏入口，并快速启用增强完整版。",
+    "admin.settings.userPortal.applyEnhancedPreset": "启用增强完整版预览",
+    "admin.settings.userPortal.menuPreview": "用户端菜单预览",
+    "admin.settings.userPortal.dependencySummary": "配置依赖",
+    "admin.settings.userPortal.nativePaymentDependency": "原生支付：需要支付服务商和可售套餐",
+    "admin.settings.userPortal.externalPurchaseDependency": "外链购买：需要购买页 URL",
+    "admin.settings.userPortal.registrationDependency": "注册：开启邮箱验证时需要先配置 SMTP",
+    "admin.settings.userPortal.modelSquareDependency": "模型广场：依赖可用渠道、活跃渠道和模型定价",
+    "admin.settings.userPortal.availableChannelsDependency": "可用渠道：依赖活跃渠道、可访问分组和模型定价",
+    "admin.settings.userPortal.channelStatusDependency": "渠道状态：依赖渠道监控模板和监控任务",
+    "admin.settings.userPortal.affiliateDependency": "邀请返利：依赖返利比例和邀请规则",
+    "admin.settings.userPortal.customPageDependency": "自定义页面：需要菜单 URL",
+    "admin.settings.userPortal.statusNeedsSmtp": "SMTP 未配置",
+    "admin.settings.userPortal.statusNeedsRebateRate": "返利比例未配置",
+    "admin.settings.userPortal.enhancedPresetApplied": "已启用增强完整版预览配置，请保存设置后生效。",
+    "nav.modelSquare": "模型广场",
     "admin.settings.openaiExperimentalScheduler.title": "OpenAI 实验调度策略",
     "admin.settings.openaiExperimentalScheduler.description": "默认关闭。开启后仅影响本网关在 OpenAI 账号间的实验性调度选择逻辑，不代表上游 OpenAI 官方能力。",
     "admin.settings.site.uploadImage": "上传图片",
@@ -454,6 +471,16 @@ async function openUsersTab(wrapper: ReturnType<typeof mountView>) {
   await flushPromises();
 }
 
+async function openFeaturesTab(wrapper: ReturnType<typeof mountView>) {
+  const featuresTabButton = wrapper
+    .findAll("button")
+    .find((node) => node.text().includes("admin.settings.tabs.features"));
+
+  expect(featuresTabButton).toBeDefined();
+  await featuresTabButton?.trigger("click");
+  await flushPromises();
+}
+
 describe("admin SettingsView payment visible method controls", () => {
   beforeEach(() => {
     getSettings.mockReset();
@@ -734,6 +761,172 @@ describe("admin SettingsView payment visible method controls", () => {
     expect(paymentHelpImageUpload).toBeDefined();
     expect(paymentHelpImageUpload?.attributes("data-upload-label")).toBe("上传图片");
     expect(paymentHelpImageUpload?.attributes("data-remove-label")).toBe("移除");
+  });
+
+  it("applies the enhanced user portal preview preset to existing settings", async () => {
+    getSettings.mockResolvedValueOnce({
+      ...baseSettingsResponse,
+      payment_enabled: false,
+      payment_min_amount: 0,
+      payment_max_amount: 0,
+      payment_max_pending_orders: 0,
+      payment_enabled_types: [],
+      available_channels_enabled: false,
+      channel_monitor_enabled: false,
+      affiliate_enabled: false,
+      custom_menu_items: [],
+    });
+
+    const wrapper = mountView();
+
+    await flushPromises();
+    await openFeaturesTab(wrapper);
+
+    expect(wrapper.text()).toContain("用户端功能总览");
+    expect(wrapper.text()).toContain("用户端菜单预览");
+    expect(wrapper.text()).toContain("原生支付：需要支付服务商和可售套餐");
+
+    const presetButton = wrapper
+      .findAll("button")
+      .find((node) => node.text().includes("启用增强完整版预览"));
+    expect(presetButton).toBeDefined();
+
+    await presetButton?.trigger("click");
+    await flushPromises();
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(showSuccess).toHaveBeenCalledWith("已启用增强完整版预览配置，请保存设置后生效。");
+    expect(updateSettings).toHaveBeenCalledTimes(1);
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        registration_enabled: true,
+        default_balance: 0.01,
+        default_concurrency: 5,
+        payment_enabled: true,
+        payment_min_amount: 1,
+        payment_max_amount: 10000,
+        payment_max_pending_orders: 3,
+        payment_enabled_types: ["alipay"],
+        purchase_subscription_enabled: false,
+        purchase_subscription_url: "",
+        available_channels_enabled: true,
+        channel_monitor_enabled: true,
+        affiliate_enabled: true,
+        custom_menu_items: [],
+      }),
+    );
+  });
+
+  it("lets administrators open user portal features from system settings", async () => {
+    getSettings.mockResolvedValueOnce({
+      ...baseSettingsResponse,
+      registration_enabled: false,
+      payment_enabled: false,
+      purchase_subscription_enabled: false,
+      purchase_subscription_url: "",
+      available_channels_enabled: false,
+      channel_monitor_enabled: false,
+      affiliate_enabled: false,
+    });
+
+    const wrapper = mountView();
+
+    await flushPromises();
+    await openFeaturesTab(wrapper);
+
+    await wrapper.get('[data-testid="user-portal-toggle-registration"]').setValue(true);
+    await wrapper.get('[data-testid="user-portal-toggle-payment"]').setValue(true);
+    await wrapper.get('[data-testid="user-portal-toggle-purchase"]').setValue(true);
+    await wrapper
+      .get('[data-testid="user-portal-purchase-url"]')
+      .setValue("https://pay.example.com/pay");
+    await wrapper.get('[data-testid="user-portal-toggle-available-channels"]').setValue(true);
+    await wrapper.get('[data-testid="user-portal-toggle-channel-status"]').setValue(true);
+    await wrapper.get('[data-testid="user-portal-toggle-affiliate"]').setValue(true);
+    await wrapper.find("form").trigger("submit.prevent");
+    await flushPromises();
+
+    expect(updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        registration_enabled: true,
+        payment_enabled: true,
+        purchase_subscription_enabled: true,
+        purchase_subscription_url: "https://pay.example.com/pay",
+        available_channels_enabled: true,
+        channel_monitor_enabled: true,
+        affiliate_enabled: true,
+      }),
+    );
+  });
+
+  it("shows model square in the user portal overview when channel display is enabled", async () => {
+    getSettings.mockResolvedValueOnce({
+      ...baseSettingsResponse,
+      available_channels_enabled: true,
+      channel_monitor_enabled: true,
+      custom_menu_items: [],
+    });
+
+    const wrapper = mountView();
+
+    await flushPromises();
+    await openFeaturesTab(wrapper);
+
+    expect(wrapper.text()).toContain("模型广场");
+    expect(wrapper.text()).toContain("模型广场：依赖可用渠道、活跃渠道和模型定价");
+  });
+
+  it("summarizes all user portal dependencies in system settings", async () => {
+    getSettings.mockResolvedValueOnce({
+      ...baseSettingsResponse,
+      registration_enabled: true,
+      email_verify_enabled: true,
+      smtp_host: "",
+      smtp_username: "",
+      smtp_from_email: "",
+      smtp_password_configured: false,
+      available_channels_enabled: true,
+      channel_monitor_enabled: true,
+      affiliate_enabled: true,
+      affiliate_rebate_rate: 0,
+      custom_menu_items: [],
+    });
+
+    const wrapper = mountView();
+
+    await flushPromises();
+    await openFeaturesTab(wrapper);
+
+    expect(wrapper.text()).toContain("注册：开启邮箱验证时需要先配置 SMTP");
+    expect(wrapper.text()).toContain("SMTP 未配置");
+    expect(wrapper.text()).toContain("可用渠道：依赖活跃渠道、可访问分组和模型定价");
+    expect(wrapper.text()).toContain("渠道状态：依赖渠道监控模板和监控任务");
+    expect(wrapper.text()).toContain("邀请返利：依赖返利比例和邀请规则");
+    expect(wrapper.text()).toContain("返利比例未配置");
+  });
+
+  it("does not offer a preset that points users at the reference site's purchase system", async () => {
+    getSettings.mockResolvedValueOnce({
+      ...baseSettingsResponse,
+      payment_enabled: true,
+      payment_enabled_types: ["alipay"],
+      purchase_subscription_enabled: false,
+      purchase_subscription_url: "",
+      promo_code_enabled: true,
+      available_channels_enabled: true,
+      channel_monitor_enabled: false,
+      affiliate_enabled: true,
+      custom_menu_items: [],
+    });
+
+    const wrapper = mountView();
+
+    await flushPromises();
+    await openFeaturesTab(wrapper);
+
+    expect(wrapper.text()).not.toContain("启用参考站式购买页");
+    expect(wrapper.text()).not.toContain("free.codesonline.dev");
   });
 });
 

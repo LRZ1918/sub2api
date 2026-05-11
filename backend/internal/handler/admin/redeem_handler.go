@@ -23,6 +23,15 @@ type RedeemHandler struct {
 	redeemService *service.RedeemService
 }
 
+type redeemCodeStatsResponse struct {
+	TotalCodes            int64            `json:"total_codes"`
+	ActiveCodes           int64            `json:"active_codes"`
+	UsedCodes             int64            `json:"used_codes"`
+	ExpiredCodes          int64            `json:"expired_codes"`
+	TotalValueDistributed float64          `json:"total_value_distributed"`
+	ByType                map[string]int64 `json:"by_type"`
+}
+
 // NewRedeemHandler creates a new admin redeem handler
 func NewRedeemHandler(adminService service.AdminService, redeemService *service.RedeemService) *RedeemHandler {
 	return &RedeemHandler{
@@ -282,19 +291,53 @@ func (h *RedeemHandler) Expire(c *gin.Context) {
 // GetStats handles getting redeem code statistics
 // GET /api/v1/admin/redeem-codes/stats
 func (h *RedeemHandler) GetStats(c *gin.Context) {
-	// Return mock data for now
-	response.Success(c, gin.H{
-		"total_codes":             0,
-		"active_codes":            0,
-		"used_codes":              0,
-		"expired_codes":           0,
-		"total_value_distributed": 0.0,
-		"by_type": gin.H{
-			"balance":     0,
-			"concurrency": 0,
-			"trial":       0,
+	stats, err := h.loadRedeemCodeStats(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, stats)
+}
+
+func (h *RedeemHandler) loadRedeemCodeStats(ctx context.Context) (*redeemCodeStatsResponse, error) {
+	const pageSize = 1000
+	stats := &redeemCodeStatsResponse{
+		ByType: map[string]int64{
+			service.RedeemTypeBalance:      0,
+			service.RedeemTypeConcurrency:  0,
+			service.RedeemTypeSubscription: 0,
+			service.RedeemTypeInvitation:   0,
 		},
-	})
+	}
+
+	for page := 1; ; page++ {
+		codes, total, err := h.adminService.ListRedeemCodes(ctx, page, pageSize, "", "", "", "id", "asc")
+		if err != nil {
+			return nil, fmt.Errorf("list redeem codes for stats: %w", err)
+		}
+		if page == 1 {
+			stats.TotalCodes = total
+		}
+		for _, code := range codes {
+			stats.ByType[code.Type]++
+			switch code.Status {
+			case service.StatusUnused:
+				stats.ActiveCodes++
+			case service.StatusUsed:
+				stats.UsedCodes++
+				if code.Type == service.RedeemTypeBalance && code.Value > 0 {
+					stats.TotalValueDistributed += code.Value
+				}
+			case service.StatusExpired:
+				stats.ExpiredCodes++
+			}
+		}
+		if len(codes) == 0 || int64(page*pageSize) >= total {
+			break
+		}
+	}
+
+	return stats, nil
 }
 
 // Export handles exporting redeem codes to CSV

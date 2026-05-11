@@ -1,11 +1,27 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { put } = vi.hoisted(() => ({
+  put: vi.fn(),
+}))
+
+vi.mock('@/api/client', () => ({
+  apiClient: {
+    put,
+  },
+}))
 
 import {
   getPaymentVisibleMethodSourceOptions,
   normalizePaymentVisibleMethodSource,
+  updateSettings,
 } from '@/api/admin/settings'
 
 describe('admin settings payment visible method helpers', () => {
+  beforeEach(() => {
+    put.mockReset()
+    put.mockResolvedValue({ data: {} })
+  })
+
   it('normalizes aliases into canonical source keys per visible method', () => {
     expect(normalizePaymentVisibleMethodSource('alipay', 'official')).toBe('official_alipay')
     expect(normalizePaymentVisibleMethodSource('alipay', 'alipay_direct')).toBe('official_alipay')
@@ -59,5 +75,20 @@ describe('admin settings payment visible method helpers', () => {
         labelEn: 'EasyPay WeChat Pay',
       },
     ])
+  })
+
+  it('saves alipay as the only visible launch payment method', async () => {
+    await updateSettings({
+      payment_enabled: true,
+      payment_enabled_types: ['alipay'],
+    })
+
+    expect(put).toHaveBeenCalledWith(
+      '/admin/settings',
+      expect.objectContaining({
+        payment_enabled: true,
+        payment_enabled_types: ['alipay'],
+      }),
+    )
   })
 })

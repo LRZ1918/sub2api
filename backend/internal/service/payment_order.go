@@ -235,9 +235,7 @@ func (s *PaymentService) allocateOutTradeNo(ctx context.Context, tx *dbent.Tx) (
 }
 
 func (s *PaymentService) checkPendingLimit(ctx context.Context, tx *dbent.Tx, userID int64, max int) error {
-	if max <= 0 {
-		max = defaultMaxPendingOrders
-	}
+	max = EffectiveMaxPendingOrders(max)
 	c, err := tx.PaymentOrder.Query().Where(paymentorder.UserIDEQ(userID), paymentorder.StatusEQ(OrderStatusPending)).Count(ctx)
 	if err != nil {
 		return fmt.Errorf("count pending orders: %w", err)
@@ -247,6 +245,23 @@ func (s *PaymentService) checkPendingLimit(ctx context.Context, tx *dbent.Tx, us
 			WithMetadata(map[string]string{"max": strconv.Itoa(max)})
 	}
 	return nil
+}
+
+func EffectiveMaxPendingOrders(max int) int {
+	if max <= 0 {
+		return defaultMaxPendingOrders
+	}
+	return max
+}
+
+func (s *PaymentService) CountPendingOrders(ctx context.Context, userID int64) (int, error) {
+	count, err := s.entClient.PaymentOrder.Query().
+		Where(paymentorder.UserIDEQ(userID), paymentorder.StatusEQ(OrderStatusPending)).
+		Count(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("count pending orders: %w", err)
+	}
+	return count, nil
 }
 
 func buildPaymentOrderProviderSnapshot(sel *payment.InstanceSelection, req CreateOrderRequest) map[string]any {

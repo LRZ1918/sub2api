@@ -85,6 +85,103 @@
         </div>
 
         <div
+          v-if="recommendedNextStep"
+          data-testid="launch-next-step"
+          class="card border-l-4 border-primary-500 p-5"
+        >
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0">
+              <p class="text-xs font-semibold uppercase tracking-wide text-primary-600 dark:text-primary-400">
+                {{ t('admin.launchReadiness.nextStep.title') }}
+              </p>
+              <h2 class="mt-2 text-base font-semibold text-gray-900 dark:text-white">
+                {{ recommendedNextStep.title }}
+              </h2>
+              <p class="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-400">
+                {{ recommendedNextStep.description }}
+              </p>
+              <p
+                v-if="recommendedNextStep.value"
+                class="mt-2 inline-flex rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-dark-700 dark:text-gray-300"
+              >
+                {{ recommendedNextStep.value }}
+              </p>
+            </div>
+            <button
+              v-if="recommendedNextStep.action_path && recommendedNextStep.action_label"
+              type="button"
+              class="btn btn-primary inline-flex shrink-0 items-center justify-center gap-2 self-start"
+              @click="openAction(recommendedNextStep.action_path)"
+            >
+              <span>{{ recommendedNextStep.action_label }}</span>
+              <Icon name="arrowRight" size="xs" :stroke-width="2" />
+            </button>
+          </div>
+        </div>
+
+        <div
+          v-if="actionQueue.length > 0"
+          data-testid="launch-action-queue"
+          class="card p-5"
+        >
+          <div class="flex flex-col gap-1">
+            <p class="text-xs font-semibold uppercase tracking-wide text-primary-600 dark:text-primary-400">
+              {{ t('admin.launchReadiness.actionQueue.title') }}
+            </p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              {{ t('admin.launchReadiness.actionQueue.description') }}
+            </p>
+          </div>
+
+          <ol class="mt-4 divide-y divide-gray-100 dark:divide-dark-700">
+            <li
+              v-for="(item, index) in actionQueue"
+              :key="`${item.sectionId}:${item.id}`"
+              class="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 lg:flex-row lg:items-start lg:justify-between"
+            >
+              <div class="flex min-w-0 gap-3">
+                <span class="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-600 dark:bg-dark-700 dark:text-gray-300">
+                  {{ index + 1 }}
+                </span>
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span :class="['inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium', statusTone(item.status).badge]">
+                      <Icon :name="statusTone(item.status).icon" size="xs" :stroke-width="2" />
+                      {{ t(statusTone(item.status).labelKey) }}
+                    </span>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      {{ item.sectionTitle }}
+                    </span>
+                  </div>
+                  <h3 class="mt-2 text-sm font-semibold text-gray-900 dark:text-white">
+                    {{ item.title }}
+                  </h3>
+                  <p class="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-400">
+                    {{ item.description }}
+                  </p>
+                  <p
+                    v-if="item.value"
+                    class="mt-2 inline-flex rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 dark:bg-dark-700 dark:text-gray-300"
+                  >
+                    {{ item.value }}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                v-if="item.action_path && item.action_label"
+                type="button"
+                class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-primary-300 hover:text-primary-700 dark:border-dark-600 dark:bg-dark-800 dark:text-gray-300 dark:hover:border-primary-500 dark:hover:text-primary-300"
+                @click="openAction(item.action_path)"
+              >
+                <span>{{ item.action_label }}</span>
+                <Icon name="arrowRight" size="xs" :stroke-width="2" />
+              </button>
+            </li>
+          </ol>
+        </div>
+
+        <div
           v-if="loadError"
           class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-200"
         >
@@ -183,6 +280,47 @@ const completionPercent = computed(() => {
 })
 
 const overallTone = computed(() => overallStatusTone(report.value?.overall_status ?? 'blocked'))
+
+const recommendedNextStep = computed(() => {
+  if (!report.value) return null
+  return findFirstCheckByStatus('fail') ?? findFirstCheckByStatus('warn')
+})
+
+const actionQueue = computed(() => {
+  if (!report.value) return []
+  const priority: Record<LaunchReadinessStatus, number> = {
+    fail: 0,
+    warn: 1,
+    pass: 2
+  }
+
+  return report.value.sections
+    .flatMap((section, sectionIndex) =>
+      section.checks.map((check, checkIndex) => ({
+        ...check,
+        sectionId: section.id,
+        sectionTitle: section.title,
+        sectionIndex,
+        checkIndex
+      }))
+    )
+    .filter((check) => check.status !== 'pass')
+    .sort((a, b) =>
+      priority[a.status] - priority[b.status]
+      || a.sectionIndex - b.sectionIndex
+      || a.checkIndex - b.checkIndex
+    )
+    .slice(0, 5)
+})
+
+function findFirstCheckByStatus(status: LaunchReadinessStatus) {
+  if (!report.value) return null
+  for (const section of report.value.sections) {
+    const found = section.checks.find((check) => check.status === status)
+    if (found) return found
+  }
+  return null
+}
 
 async function fetchReport(): Promise<void> {
   const firstLoad = !report.value

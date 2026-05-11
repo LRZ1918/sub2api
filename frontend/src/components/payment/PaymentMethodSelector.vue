@@ -20,14 +20,27 @@
         @click="method.available && emit('select', method.type)"
       >
         <span class="flex items-center gap-2">
-          <img :src="methodIcon(method.type)" :alt="t(`payment.methods.${method.type}`)" class="h-7 w-7 object-contain" />
+          <span
+            v-if="method.type === 'paypal'"
+            class="inline-flex h-7 w-7 items-center justify-center rounded-md bg-[#003087] text-[10px] font-bold text-white"
+            aria-hidden="true"
+          >
+            PP
+          </span>
+          <img v-else :src="methodIcon(method.type)" :alt="methodLabel(method)" class="h-7 w-7" />
           <span class="flex flex-col items-start leading-none">
-            <span class="text-base font-semibold">{{ t(`payment.methods.${method.type}`) }}</span>
+            <span class="text-base font-semibold">{{ methodLabel(method) }}</span>
             <span
               v-if="method.fee_rate > 0"
               class="text-[10px] tracking-wide text-gray-500 dark:text-dark-400"
             >
               {{ t('payment.fee') }} {{ method.fee_rate }}%
+            </span>
+            <span
+              v-else-if="method.noteKey"
+              class="text-[10px] tracking-wide text-gray-500 dark:text-dark-400"
+            >
+              {{ t(method.noteKey) }}
             </span>
           </span>
         </span>
@@ -43,12 +56,13 @@ import { METHOD_ORDER } from './providerConfig'
 import alipayIcon from '@/assets/icons/alipay.svg'
 import wxpayIcon from '@/assets/icons/wxpay.svg'
 import stripeIcon from '@/assets/icons/stripe.svg'
-import airwallexIcon from '@/assets/icons/airwallex.svg'
 
 export interface PaymentMethodOption {
   type: string
   fee_rate: number
   available: boolean
+  labelKey?: string
+  noteKey?: string
 }
 
 const props = defineProps<{
@@ -66,7 +80,6 @@ const METHOD_ICONS: Record<string, string> = {
   alipay: alipayIcon,
   wxpay: wxpayIcon,
   stripe: stripeIcon,
-  airwallex: airwallexIcon,
 }
 
 const sortedMethods = computed(() => {
@@ -81,15 +94,17 @@ const sortedMethods = computed(() => {
 function methodIcon(type: string): string {
   if (type.includes('alipay')) return METHOD_ICONS.alipay
   if (type.includes('wxpay')) return METHOD_ICONS.wxpay
-  if (type === 'airwallex') return METHOD_ICONS.airwallex
   return METHOD_ICONS[type] || alipayIcon
+}
+
+function methodLabel(method: PaymentMethodOption): string {
+  return t(method.labelKey || `payment.methods.${method.type}`)
 }
 
 function methodSelectedClass(type: string): string {
   if (type.includes('alipay')) return 'border-[#02A9F1] bg-blue-50 text-gray-900 shadow-sm dark:bg-blue-950 dark:text-gray-100'
   if (type.includes('wxpay')) return 'border-[#09BB07] bg-green-50 text-gray-900 shadow-sm dark:bg-green-950 dark:text-gray-100'
   if (type === 'stripe') return 'border-[#676BE5] bg-indigo-50 text-gray-900 shadow-sm dark:bg-indigo-950 dark:text-gray-100'
-  if (type === 'airwallex') return 'border-[#FF6B3D] bg-orange-50 text-gray-900 shadow-sm dark:border-[#FF8E3C] dark:bg-orange-950 dark:text-gray-100'
   return 'border-primary-500 bg-primary-50 text-gray-900 shadow-sm dark:bg-primary-950 dark:text-gray-100'
 }
 </script>

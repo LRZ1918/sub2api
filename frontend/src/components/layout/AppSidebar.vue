@@ -187,6 +187,7 @@ import { useAdminSettingsStore, useAppStore, useAuthStore, useOnboardingStore } 
 import VersionBadge from '@/components/common/VersionBadge.vue'
 import { sanitizeSvg } from '@/utils/sanitize'
 import { FeatureFlags, makeSidebarFlag } from '@/utils/featureFlags'
+import { buildVisibleUserNavItems, type VisibleUserNavItem } from './userNavItems'
 
 interface NavItem {
   path: string
@@ -647,8 +648,6 @@ const ChevronDownIcon = {
 // which handles the opt-in vs opt-out fallback when settings haven't loaded
 // yet. Admin-only flags (not in public settings) stay inline below.
 const flagChannelMonitor = makeSidebarFlag(FeatureFlags.channelMonitor)
-const flagPayment = makeSidebarFlag(FeatureFlags.payment)
-const flagAvailableChannels = makeSidebarFlag(FeatureFlags.availableChannels)
 const flagAffiliate = makeSidebarFlag(FeatureFlags.affiliate)
 const flagRiskControl = makeSidebarFlag(FeatureFlags.riskControl)
 const flagOpsMonitoring = () => adminSettingsStore.opsMonitoringEnabled
@@ -657,55 +656,53 @@ const flagAdminPayment = () => adminSettingsStore.paymentEnabled
 // buildSelfNavItems 构造用户自己的导航项（用户端主菜单和管理员的"我的账户"子菜单共享这组声明）。
 // withDashboard=true 时包含仪表盘（用户端），false 时不含（管理员的个人区已经有独立仪表盘入口）。
 //
-// 条目顺序：密钥 → 用量 → 可用渠道 → 渠道状态 → 订阅/支付 → 兑换/资料。
-// 可用渠道紧挨渠道状态之上，让用户"先看自己能用什么、再看对应状态"。
-function buildSelfNavItems(withDashboard: boolean): NavItem[] {
-  const items: NavItem[] = []
-  if (withDashboard) {
-    items.push({ path: '/dashboard', label: t('nav.dashboard'), icon: DashboardIcon })
+// 条目顺序按参考用户端的核心路径组织：仪表盘 → 密钥 → 用量 → 订阅 → 购买 → 兑换 → 资料，
+// 其余增强项继续通过后台开关显隐。
+function toSidebarNavItem(item: VisibleUserNavItem): NavItem {
+  switch (item.key) {
+    case 'dashboard':
+      return { path: item.path, label: t('nav.dashboard'), icon: DashboardIcon }
+    case 'keys':
+      return { path: item.path, label: t('nav.apiKeys'), icon: KeyIcon }
+    case 'usage':
+      return { path: item.path, label: t('nav.usage'), icon: ChartIcon, hideInSimpleMode: item.hideInSimpleMode }
+    case 'subscriptions':
+      return { path: item.path, label: t('nav.mySubscriptions'), icon: CreditCardIcon, hideInSimpleMode: item.hideInSimpleMode }
+    case 'purchase':
+      return { path: item.path, label: t('nav.buySubscription'), icon: RechargeSubscriptionIcon, hideInSimpleMode: item.hideInSimpleMode }
+    case 'redeem':
+      return { path: item.path, label: t('nav.redeem'), icon: GiftIcon, hideInSimpleMode: item.hideInSimpleMode }
+    case 'profile':
+      return { path: item.path, label: t('nav.profile'), icon: UserIcon }
+    case 'modelSquare':
+      return { path: item.path, label: t('nav.modelSquare'), icon: ChannelIcon, hideInSimpleMode: item.hideInSimpleMode }
+    case 'availableChannels':
+      return { path: item.path, label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: item.hideInSimpleMode }
+    case 'channelStatus':
+      return { path: item.path, label: t('nav.channelStatus'), icon: SignalIcon }
+    case 'orders':
+      return { path: item.path, label: t('nav.myOrders'), icon: OrderListIcon, hideInSimpleMode: item.hideInSimpleMode }
+    case 'affiliate':
+      return { path: item.path, label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: item.hideInSimpleMode }
+    case 'custom':
+      return { path: item.path, label: item.label ?? '', icon: null, iconSvg: item.iconSvg }
   }
-  items.push(
-    { path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon },
-    { path: '/usage', label: t('nav.usage'), icon: ChartIcon, hideInSimpleMode: true },
-    { path: '/available-channels', label: t('nav.availableChannels'), icon: ChannelIcon, hideInSimpleMode: true, featureFlag: flagAvailableChannels },
-    { path: '/monitor', label: t('nav.channelStatus'), icon: SignalIcon, featureFlag: flagChannelMonitor },
-    { path: '/subscriptions', label: t('nav.mySubscriptions'), icon: CreditCardIcon, hideInSimpleMode: true },
-    { path: '/purchase', label: t('nav.buySubscription'), icon: RechargeSubscriptionIcon, hideInSimpleMode: true, featureFlag: flagPayment },
-    { path: '/orders', label: t('nav.myOrders'), icon: OrderListIcon, hideInSimpleMode: true, featureFlag: flagPayment },
-    { path: '/redeem', label: t('nav.redeem'), icon: GiftIcon, hideInSimpleMode: true },
-    { path: '/affiliate', label: t('nav.affiliate'), icon: UsersIcon, hideInSimpleMode: true, featureFlag: flagAffiliate },
-    { path: '/profile', label: t('nav.profile'), icon: UserIcon },
-    ...customMenuItemsForUser.value.map((item): NavItem => ({
-      path: `/custom/${item.id}`,
-      label: item.label,
-      icon: null,
-      iconSvg: item.icon_svg,
-    })),
-  )
-  return items
 }
 
-// finalizeNav 合并三重过滤：featureFlag 过滤 + simple 模式过滤。
-function finalizeNav(items: NavItem[]): NavItem[] {
-  const visible = applyFeatureFlags(items)
-  return authStore.isSimpleMode ? visible.filter(item => !item.hideInSimpleMode) : visible
+function buildSelfNavItems(withDashboard: boolean): NavItem[] {
+  return buildVisibleUserNavItems(appStore.cachedPublicSettings, {
+    withDashboard,
+    simpleMode: authStore.isSimpleMode,
+  }).map(toSidebarNavItem)
 }
 
 // User navigation items (for regular users)
-const userNavItems = computed((): NavItem[] => finalizeNav(buildSelfNavItems(true)))
+const userNavItems = computed((): NavItem[] => buildSelfNavItems(true))
 
 // Personal navigation items (for admin's "My Account" section, without Dashboard).
 // Admins access 可用渠道 from this section just like regular users — there is no
 // separate admin entry, since the page is purely a user-facing view.
-const personalNavItems = computed((): NavItem[] => finalizeNav(buildSelfNavItems(false)))
-
-// Custom menu items filtered by visibility
-const customMenuItemsForUser = computed(() => {
-  const items = appStore.cachedPublicSettings?.custom_menu_items ?? []
-  return items
-    .filter((item) => item.visibility === 'user')
-    .sort((a, b) => a.sort_order - b.sort_order)
-})
+const personalNavItems = computed((): NavItem[] => buildSelfNavItems(false))
 
 const customMenuItemsForAdmin = computed(() => {
   return adminSettingsStore.customMenuItems

@@ -951,7 +951,7 @@ func TestAPIContracts(t *testing.T) {
 					"google_oauth_frontend_redirect_url": "/auth/oauth/callback",
 					"site_name": "Sub2API",
 					"site_logo": "",
-					"site_subtitle": "Subscription to API Conversion Platform",
+					"site_subtitle": "订阅转 API 转换平台",
 					"api_base_url": "",
 					"contact_info": "",
 					"doc_url": "",
@@ -1193,7 +1193,7 @@ func newContractDeps(t *testing.T) *contractDeps {
 	settingRepo := newStubSettingRepo()
 	settingService := service.NewSettingService(settingRepo, cfg)
 
-	adminService := service.NewAdminService(userRepo, groupRepo, &accountRepo, proxyRepo, apiKeyRepo, redeemRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	adminService := service.NewAdminService(userRepo, groupRepo, &accountRepo, proxyRepo, apiKeyRepo, redeemRepo, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	authHandler := handler.NewAuthHandler(cfg, nil, userService, settingService, nil, redeemService, nil)
 	apiKeyHandler := handler.NewAPIKeyHandler(apiKeyService)
 	usageHandler := handler.NewUsageHandler(usageService, apiKeyService)

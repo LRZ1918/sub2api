@@ -39,6 +39,16 @@
             >
               <Icon name="refresh" size="md" :class="loading ? 'animate-spin' : ''" />
             </button>
+            <button
+              type="button"
+              data-testid="import-reference-channel-preset"
+              class="btn btn-secondary"
+              :disabled="loading || importingReferencePreset"
+              @click="importReferenceChannelPreset"
+            >
+              <Icon name="plus" size="md" class="mr-2" />
+              {{ t('admin.channels.referencePreset.import', '导入参考站渠道') }}
+            </button>
             <button @click="openCreateDialog" class="btn btn-primary">
               <Icon name="plus" size="md" class="mr-2" />
               {{ t('admin.channels.createChannel', 'Create Channel') }}
@@ -625,6 +635,10 @@ import Toggle from '@/components/common/Toggle.vue'
 import PricingEntryCard from '@/components/admin/channel/PricingEntryCard.vue'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import { useKeyedDebouncedSearch } from '@/composables/useKeyedDebouncedSearch'
+import {
+  REFERENCE_CHANNEL_PRESET_NAME,
+  buildReferenceChannelPresetPayload,
+} from './referenceChannelPreset'
 
 const { t } = useI18n()
 const appStore = useAppStore()
@@ -712,6 +726,7 @@ const submitting = ref(false)
 const showDeleteDialog = ref(false)
 const deletingChannel = ref<Channel | null>(null)
 const activeTab = ref<string>('basic')
+const importingReferencePreset = ref(false)
 
 // Groups
 const allGroups = ref<AdminGroup[]>([])
@@ -1192,6 +1207,54 @@ async function loadAllChannelsForConflict() {
   } catch (error) {
     // Fallback to current page data
     allChannelsForConflict.value = channels.value
+  }
+}
+
+async function importReferenceChannelPreset() {
+  if (importingReferencePreset.value) return
+
+  importingReferencePreset.value = true
+  try {
+    if (channels.value.some(channel => channel.name === REFERENCE_CHANNEL_PRESET_NAME)) {
+      appStore.showError(t(
+        'admin.channels.referencePreset.alreadyExists',
+        '参考站渠道预设已存在，请编辑现有渠道或删除后重新导入。'
+      ))
+      return
+    }
+
+    const existingChannels = await adminAPI.channels.list(1, 1000)
+    if ((existingChannels.items || []).some(channel => channel.name === REFERENCE_CHANNEL_PRESET_NAME)) {
+      appStore.showError(t(
+        'admin.channels.referencePreset.alreadyExists',
+        '参考站渠道预设已存在，请编辑现有渠道或删除后重新导入。'
+      ))
+      return
+    }
+
+    await loadGroups()
+    const payload = buildReferenceChannelPresetPayload(allGroups.value)
+    if (payload.group_ids.length === 0) {
+      appStore.showError(t(
+        'admin.channels.referencePreset.noEligibleGroups',
+        '没有找到可用于参考渠道的活跃 OpenAI 分组，请先导入参考套餐或创建 OpenAI 分组。'
+      ))
+      return
+    }
+
+    await adminAPI.channels.create(payload)
+    appStore.showSuccess(t(
+      'admin.channels.referencePreset.createSuccess',
+      '参考站渠道预设已创建'
+    ))
+    await loadChannels()
+  } catch (error: unknown) {
+    appStore.showError(extractApiErrorMessage(error, t(
+      'admin.channels.referencePreset.createError',
+      '创建参考站渠道预设失败'
+    )))
+  } finally {
+    importingReferencePreset.value = false
   }
 }
 

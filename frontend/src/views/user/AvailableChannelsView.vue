@@ -1,6 +1,22 @@
 <template>
   <AppLayout>
-    <TablePageLayout>
+    <div v-if="availableChannelsDisabled" class="mx-auto max-w-3xl">
+      <div class="card px-6 py-16 text-center">
+        <div
+          class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-dark-800 dark:text-dark-300"
+        >
+          <Icon name="infoCircle" size="lg" />
+        </div>
+        <h2 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+          {{ t('availableChannels.disabledTitle') }}
+        </h2>
+        <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-500 dark:text-dark-400">
+          {{ t('availableChannels.disabledDesc') }}
+        </p>
+      </div>
+    </div>
+
+    <TablePageLayout v-else>
       <template #filters>
         <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
           <div class="flex flex-1 flex-wrap items-center gap-3">
@@ -42,6 +58,7 @@
           :no-pricing-label="t('availableChannels.noPricing')"
           :no-models-label="t('availableChannels.noModels')"
           :empty-label="t('availableChannels.empty')"
+          :empty-description="t('availableChannels.emptyDesc')"
         />
       </template>
     </TablePageLayout>
@@ -67,6 +84,10 @@ const channels = ref<UserAvailableChannel[]>([])
 const userGroupRates = ref<Record<number, number>>({})
 const loading = ref(false)
 const searchQuery = ref('')
+
+const availableChannelsDisabled = computed(
+  () => appStore.cachedPublicSettings?.available_channels_enabled === false,
+)
 
 const columnLabels = computed(() => ({
   name: t('availableChannels.columns.name'),
@@ -103,6 +124,9 @@ const filteredChannels = computed(() => {
 })
 
 async function loadChannels() {
+  if (availableChannelsDisabled.value) {
+    return
+  }
   loading.value = true
   try {
     // 渠道列表和用户专属倍率并发拉取。专属倍率失败不阻塞渠道展示——
@@ -123,5 +147,18 @@ async function loadChannels() {
   }
 }
 
-onMounted(loadChannels)
+async function initializeChannels() {
+  try {
+    await appStore.fetchPublicSettings()
+  } catch (err) {
+    console.error('Failed to refresh public settings:', err)
+  }
+  if (!availableChannelsDisabled.value) {
+    await loadChannels()
+  }
+}
+
+onMounted(() => {
+  void initializeChannels()
+})
 </script>

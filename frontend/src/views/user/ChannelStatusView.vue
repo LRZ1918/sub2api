@@ -1,30 +1,48 @@
 <template>
   <AppLayout>
-    <MonitorHero
-      :overall-status="overallStatus"
-      :interval-seconds="DEFAULT_INTERVAL_SECONDS"
-      :window="currentWindow"
-      :loading="loading"
-      :auto-refresh="autoRefresh"
-      @update:window="handleWindowChange"
-      @refresh="manualReload"
-    />
+    <div v-if="channelMonitorDisabled" class="mx-auto max-w-3xl">
+      <div class="card px-6 py-16 text-center">
+        <div
+          class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-dark-800 dark:text-dark-300"
+        >
+          <Icon name="infoCircle" size="lg" />
+        </div>
+        <h2 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+          {{ t('channelStatus.disabledTitle') }}
+        </h2>
+        <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-500 dark:text-dark-400">
+          {{ t('channelStatus.disabledDesc') }}
+        </p>
+      </div>
+    </div>
 
-    <MonitorCardGrid
-      :items="items"
-      :window="currentWindow"
-      :countdown-seconds="countdown"
-      :loading="loading"
-      :detail-cache="detailCache"
-      @card-click="openDetail"
-    />
+    <template v-else>
+      <MonitorHero
+        :overall-status="overallStatus"
+        :interval-seconds="DEFAULT_INTERVAL_SECONDS"
+        :window="currentWindow"
+        :loading="loading"
+        :auto-refresh="autoRefresh"
+        @update:window="handleWindowChange"
+        @refresh="manualReload"
+      />
 
-    <MonitorDetailDialog
-      :show="showDetail"
-      :monitor-id="detailTarget?.id ?? null"
-      :title="detailTitle"
-      @close="closeDetail"
-    />
+      <MonitorCardGrid
+        :items="items"
+        :window="currentWindow"
+        :countdown-seconds="countdown"
+        :loading="loading"
+        :detail-cache="detailCache"
+        @card-click="openDetail"
+      />
+
+      <MonitorDetailDialog
+        :show="showDetail"
+        :monitor-id="detailTarget?.id ?? null"
+        :title="detailTitle"
+        @close="closeDetail"
+      />
+    </template>
   </AppLayout>
 </template>
 
@@ -40,6 +58,7 @@ import {
   type UserMonitorDetail,
 } from '@/api/channelMonitor'
 import AppLayout from '@/components/layout/AppLayout.vue'
+import Icon from '@/components/icons/Icon.vue'
 import MonitorHero, {
   type MonitorWindow,
   type OverallStatus,
@@ -61,6 +80,10 @@ const showDetail = ref(false)
 const detailTarget = ref<UserMonitorView | null>(null)
 
 let abortController: AbortController | null = null
+
+const channelMonitorDisabled = computed(
+  () => appStore.cachedPublicSettings?.channel_monitor_enabled === false,
+)
 
 const autoRefresh = useAutoRefresh({
   storageKey: 'channel-status-auto-refresh',
@@ -87,6 +110,9 @@ const detailTitle = computed(() => {
 
 // ── Loaders ──
 async function reload(silent = false) {
+  if (channelMonitorDisabled.value) {
+    return
+  }
   if (abortController) abortController.abort()
   const ctrl = new AbortController()
   abortController = ctrl
@@ -160,8 +186,8 @@ watch(
 )
 
 onMounted(() => {
-  void reload(false)
-  if (appStore.cachedPublicSettings?.channel_monitor_enabled !== false) {
+  if (!channelMonitorDisabled.value) {
+    void reload(false)
     autoRefresh.setEnabled(true)
   }
 })
