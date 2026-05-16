@@ -15,7 +15,7 @@ interface ReferencePurchasePreset {
     validity_days: number
     validity_unit: string
     product_name: string
-    primary_feature?: string
+    features: string
     concurrency: number
     sort_order: number
   }
@@ -23,67 +23,71 @@ interface ReferencePurchasePreset {
 
 export const referencePurchasePresets: ReferencePurchasePreset[] = [
   {
-    group: { name: '10元包月现已支持5.5', rate_multiplier: 0.083, daily_limit_usd: 0, weekly_limit_usd: 0, monthly_limit_usd: 120 },
+    group: { name: '15元120刀月卡', rate_multiplier: 0.125, daily_limit_usd: 0, weekly_limit_usd: 0, monthly_limit_usd: 120 },
     plan: {
-      name: '10元包月现已支持5.5',
+      name: '15元120刀月卡',
       description: '极度的灵活性',
-      price: 10,
+      price: 15,
       validity_days: 1,
       validity_unit: 'month',
       product_name: '',
-      primary_feature: '极度的灵活性',
+      features: '',
       concurrency: 5,
       sort_order: 10,
     },
   },
   {
-    group: { name: '日卡订阅1现已支持5.5', rate_multiplier: 0.083, daily_limit_usd: 120, weekly_limit_usd: 0, monthly_limit_usd: 0 },
+    group: { name: '150元1300刀月卡', rate_multiplier: 0.115, daily_limit_usd: 300, weekly_limit_usd: 0, monthly_limit_usd: 1300 },
     plan: {
-      name: '日卡1现已支持5.5',
+      name: '150元1300刀月卡',
       description: '',
-      price: 9.9,
+      price: 150,
       validity_days: 1,
-      validity_unit: 'day',
+      validity_unit: 'month',
       product_name: '',
-      concurrency: 10,
+      features: '',
+      concurrency: 30,
       sort_order: 20,
     },
   },
   {
-    group: { name: '月卡2现已支持5.5', rate_multiplier: 0.077, daily_limit_usd: 0, weekly_limit_usd: 0, monthly_limit_usd: 1300 },
+    group: { name: '15元120刀日卡', rate_multiplier: 0.125, daily_limit_usd: 120, weekly_limit_usd: 0, monthly_limit_usd: 0 },
     plan: {
-      name: '月卡2现已支持5.5',
+      name: '15元120刀日卡',
       description: '',
-      price: 99,
+      price: 15,
       validity_days: 1,
-      validity_unit: 'month',
+      validity_unit: 'day',
       product_name: '',
-      concurrency: 30,
+      features: '',
+      concurrency: 10,
       sort_order: 30,
     },
   },
   {
-    group: { name: '周卡订阅现已支持5.5', rate_multiplier: 0.067, daily_limit_usd: 0, weekly_limit_usd: 900, monthly_limit_usd: 0 },
+    group: { name: '90元900刀周卡', rate_multiplier: 0.1, daily_limit_usd: 300, weekly_limit_usd: 900, monthly_limit_usd: 0 },
     plan: {
-      name: '周卡现已支持5.5',
+      name: '90元900刀周卡',
       description: '',
-      price: 59.9,
+      price: 90,
       validity_days: 1,
       validity_unit: 'week',
       product_name: '',
+      features: '',
       concurrency: 30,
       sort_order: 40,
     },
   },
   {
-    group: { name: '月卡（200包月）现已支持5.5', rate_multiplier: 0.07, daily_limit_usd: 0, weekly_limit_usd: 0, monthly_limit_usd: 2857 },
+    group: { name: '300元3000刀月卡', rate_multiplier: 0.1, daily_limit_usd: 300, weekly_limit_usd: 0, monthly_limit_usd: 3000 },
     plan: {
-      name: '200包月，现已支持5.5',
+      name: '300元3000刀月卡',
       description: '',
-      price: 200,
+      price: 300,
       validity_days: 1,
       validity_unit: 'month',
       product_name: '',
+      features: '',
       concurrency: 30,
       sort_order: 50,
     },
@@ -101,28 +105,23 @@ export function buildReferenceGroupPayload(preset: ReferencePurchasePreset): Cre
     daily_limit_usd: preset.group.daily_limit_usd,
     weekly_limit_usd: preset.group.weekly_limit_usd,
     monthly_limit_usd: preset.group.monthly_limit_usd,
-    supported_model_scopes: ['gpt-5.4'],
+    supported_model_scopes: ['gpt-5.5'],
     allow_messages_dispatch: true,
-    default_mapped_model: 'gpt-5.4',
+    default_mapped_model: 'gpt-5.5',
   }
 }
 
 export function buildReferencePlanPayload(preset: ReferencePurchasePreset, groupId: number): Record<string, unknown> {
-  const features = [
-    preset.plan.primary_feature,
-    `并发上限：${preset.plan.concurrency}`,
-  ].filter(Boolean).join('\n')
-
   return {
     group_id: groupId,
     name: preset.plan.name,
     description: preset.plan.description,
     price: preset.plan.price,
-    original_price: 0,
+    original_price: null,
     validity_days: preset.plan.validity_days,
     validity_unit: preset.plan.validity_unit,
     product_name: preset.plan.product_name,
-    features,
+    features: preset.plan.features,
     for_sale: true,
     sort_order: preset.plan.sort_order,
   }

@@ -8,48 +8,52 @@ import {
 describe('referencePurchasePresets', () => {
   it('defines the same five subscription plans as the reference purchase page', () => {
     expect(referencePurchasePresets.map(plan => plan.plan.name)).toEqual([
-      '10元包月现已支持5.5',
-      '日卡1现已支持5.5',
-      '月卡2现已支持5.5',
-      '周卡现已支持5.5',
-      '200包月，现已支持5.5',
+      '15元120刀月卡',
+      '150元1300刀月卡',
+      '15元120刀日卡',
+      '90元900刀周卡',
+      '300元3000刀月卡',
     ])
-    expect(referencePurchasePresets.map(plan => plan.plan.price)).toEqual([10, 9.9, 99, 59.9, 200])
-    expect(referencePurchasePresets.map(plan => plan.group.monthly_limit_usd ?? 0)).toEqual([120, 0, 1300, 0, 2857])
+    expect(referencePurchasePresets.map(plan => plan.plan.price)).toEqual([15, 150, 15, 90, 300])
+    expect(referencePurchasePresets.map(plan => plan.group.monthly_limit_usd ?? 0)).toEqual([120, 1300, 0, 0, 3000])
     expect(referencePurchasePresets.map(plan => plan.group.weekly_limit_usd ?? 0)).toEqual([0, 0, 0, 900, 0])
-    expect(referencePurchasePresets.map(plan => plan.group.daily_limit_usd ?? 0)).toEqual([0, 120, 0, 0, 0])
+    expect(referencePurchasePresets.map(plan => plan.group.daily_limit_usd ?? 0)).toEqual([0, 300, 120, 300, 300])
     expect(referencePurchasePresets.map(plan => plan.group.name)).toEqual([
-      '10元包月现已支持5.5',
-      '日卡订阅1现已支持5.5',
-      '月卡2现已支持5.5',
-      '周卡订阅现已支持5.5',
-      '月卡（200包月）现已支持5.5',
+      '15元120刀月卡',
+      '150元1300刀月卡',
+      '15元120刀日卡',
+      '90元900刀周卡',
+      '300元3000刀月卡',
     ])
-    expect(referencePurchasePresets.map(plan => plan.group.rate_multiplier)).toEqual([0.083, 0.083, 0.077, 0.067, 0.07])
+    expect(referencePurchasePresets.map(plan => plan.group.rate_multiplier)).toEqual([0.125, 0.115, 0.125, 0.1, 0.1])
+    expect(referencePurchasePresets.map(plan => plan.plan.product_name)).toEqual(['', '', '', '', ''])
+    expect(referencePurchasePresets.map(plan => plan.plan.features)).toEqual(['', '', '', '', ''])
   })
 
   it('builds admin group and plan payloads that can reproduce the reference cards', () => {
     const preset = referencePurchasePresets[0]
 
     expect(buildReferenceGroupPayload(preset)).toMatchObject({
-      name: '10元包月现已支持5.5',
+      name: '15元120刀月卡',
       platform: 'openai',
-      rate_multiplier: 0.083,
+      rate_multiplier: 0.125,
       subscription_type: 'subscription',
       monthly_limit_usd: 120,
-      supported_model_scopes: ['gpt-5.4'],
+      supported_model_scopes: ['gpt-5.5'],
       allow_messages_dispatch: true,
-      default_mapped_model: 'gpt-5.4',
+      default_mapped_model: 'gpt-5.5',
     })
 
     expect(buildReferencePlanPayload(preset, 42)).toMatchObject({
       group_id: 42,
-      name: '10元包月现已支持5.5',
-      price: 10,
+      name: '15元120刀月卡',
+      description: '极度的灵活性',
+      price: 15,
+      original_price: null,
       validity_days: 1,
       validity_unit: 'month',
       product_name: '',
-      features: '极度的灵活性\n并发上限：5',
+      features: '',
       for_sale: true,
       sort_order: 10,
     })
