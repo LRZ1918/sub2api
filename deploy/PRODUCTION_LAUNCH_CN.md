@@ -1,6 +1,8 @@
 # Sub2API 生产上线手册
 
-这份手册用于把 Sub2API 从“本机能跑”推进到“公网正式运营”。首版目标是 Linux VPS、Docker Compose、本地目录持久化、Caddy HTTPS、Claude/Codex 账号池和官方支付宝收款。
+这份手册用于把 Sub2API 从“本机能跑”推进到“公网正式运营”。当前首版目标已调整为 Windows 本机服务器、源码编译二进制、本机 PostgreSQL/Redis、内网穿透 HTTPS、Claude/Codex 账号池和官方支付宝收款。
+
+如果你准备按 Windows 本机源码编译 + 内网穿透部署，优先阅读 `deploy/WINDOWS_SOURCE_DEPLOY_CN.md`，并使用 `deploy/source-windows.env.example`。Windows Docker Compose 路线可阅读 `deploy/WINDOWS_TUNNEL_DEPLOY_CN.md`；本文件下方的 Linux VPS + Caddy 内容继续保留，适合后续迁移到独立服务器时使用。
 
 部署前先按 `PRODUCTION_INPUTS_CN.md` 收集域名、服务器、生产密钥、Claude/Codex 上游账号、代理和支付宝资料。不要把填好的真实密钥、账号 Cookie、代理密码或支付宝私钥提交到 Git。
 

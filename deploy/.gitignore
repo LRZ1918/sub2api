@@ -9,10 +9,21 @@ redis_data/
 
 # Environment configuration (contains sensitive information)
 .env
+windows-tunnel.env
+source-windows.env
+source-windows/
+runtime/
+downloads/
 
 # Backup files
+backups/
+migration-packages/
 *.backup
 *.bak
+sub2api-backup-*.zip
+sub2api-source-backup-*.zip
+sub2api-vps-migration-*.zip
+sub2api-vps-migration-*.tar.gz
 
 # Temporary files
 *.tmp

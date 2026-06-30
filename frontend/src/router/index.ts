@@ -11,6 +11,7 @@ import { useNavigationLoadingState } from '@/composables/useNavigationLoading'
 import { useRoutePrefetch } from '@/composables/useRoutePrefetch'
 import { resolveDocumentTitle } from './title'
 import { canAccessPurchaseEntry, ensurePublicSettingsForGuard } from './guard-utils'
+import { imageWorkbenchRoutes } from '@/modules/imageWorkbench/routes'
 
 /**
  * Route definitions with lazy loading
@@ -184,6 +185,7 @@ const routes: RouteRecordRaw[] = [
       descriptionKey: 'keys.description'
     }
   },
+  ...imageWorkbenchRoutes,
   {
     path: '/usage',
     name: 'Usage',

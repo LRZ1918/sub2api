@@ -412,6 +412,7 @@ const baseSettingsResponse = {
   payment_visible_method_wxpay_source: "invalid-source",
   payment_visible_method_alipay_enabled: true,
   payment_visible_method_wxpay_enabled: true,
+  image_workbench_enabled: false,
   openai_advanced_scheduler_enabled: false,
   balance_low_notify_enabled: false,
   balance_low_notify_threshold: 0,
@@ -772,6 +773,7 @@ describe("admin SettingsView payment visible method controls", () => {
       payment_max_pending_orders: 0,
       payment_enabled_types: [],
       available_channels_enabled: false,
+      image_workbench_enabled: false,
       channel_monitor_enabled: false,
       affiliate_enabled: false,
       custom_menu_items: [],
@@ -805,12 +807,13 @@ describe("admin SettingsView payment visible method controls", () => {
         default_concurrency: 5,
         payment_enabled: true,
         payment_min_amount: 1,
-        payment_max_amount: 10000,
+        payment_max_amount: 1000,
         payment_max_pending_orders: 3,
         payment_enabled_types: ["alipay"],
         purchase_subscription_enabled: false,
         purchase_subscription_url: "",
         available_channels_enabled: true,
+        image_workbench_enabled: true,
         channel_monitor_enabled: true,
         affiliate_enabled: true,
         custom_menu_items: [],
@@ -826,6 +829,7 @@ describe("admin SettingsView payment visible method controls", () => {
       purchase_subscription_enabled: false,
       purchase_subscription_url: "",
       available_channels_enabled: false,
+      image_workbench_enabled: false,
       channel_monitor_enabled: false,
       affiliate_enabled: false,
     });
@@ -841,6 +845,7 @@ describe("admin SettingsView payment visible method controls", () => {
     await wrapper
       .get('[data-testid="user-portal-purchase-url"]')
       .setValue("https://pay.example.com/pay");
+    await wrapper.get('[data-testid="user-portal-toggle-image-workbench"]').setValue(true);
     await wrapper.get('[data-testid="user-portal-toggle-available-channels"]').setValue(true);
     await wrapper.get('[data-testid="user-portal-toggle-channel-status"]').setValue(true);
     await wrapper.get('[data-testid="user-portal-toggle-affiliate"]').setValue(true);
@@ -853,6 +858,7 @@ describe("admin SettingsView payment visible method controls", () => {
         payment_enabled: true,
         purchase_subscription_enabled: true,
         purchase_subscription_url: "https://pay.example.com/pay",
+        image_workbench_enabled: true,
         available_channels_enabled: true,
         channel_monitor_enabled: true,
         affiliate_enabled: true,

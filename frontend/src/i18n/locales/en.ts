@@ -345,6 +345,7 @@ export default {
     dashboard: 'Dashboard',
     announcements: 'Announcements',
     apiKeys: 'API Keys',
+    imageWorkbench: 'Image Workbench',
     usage: 'Usage',
     redeem: 'Redeem',
     affiliate: 'Affiliate Rebates',
@@ -1001,6 +1002,62 @@ export default {
       unitPerMillion: '/ 1M tokens',
       unitPerRequest: '/ request'
     }
+  },
+
+  imageWorkbench: {
+    title: 'Image Workbench',
+    description: 'Select your own API Key and use the in-site image endpoints for generation or editing.',
+    gatewayLabel: 'Gateway',
+    nativeBadge: 'Native module',
+    realKeyBillingHint: 'Uses real user keys and existing billing',
+    disabledTitle: 'Image Workbench is not enabled',
+    disabledDesc: 'The administrator has not enabled the Image Workbench yet. Once enabled, you can generate or edit images with your own API Key.',
+    refresh: 'Refresh',
+    loadFailedTitle: 'Image Workbench is temporarily unavailable',
+    loadFailedDesc: 'Unable to load Image Workbench configuration. Please try again later.',
+    retry: 'Retry',
+    noKeysTitle: 'No available image API Key',
+    noKeysDesc: 'Create an available API Key first, or ask the administrator to enable image generation for your group.',
+    noModelsTitle: 'No available image models',
+    noModelsDesc: 'The administrator has not configured available image models or pricing yet.',
+    chooseKey: 'Choose Key',
+    apiKey: 'API Key',
+    unknownGroup: 'Unnamed group',
+    quotaRemaining: 'Remaining quota',
+    model: 'Model',
+    references: 'References',
+    uploadImages: 'Upload reference images',
+    uploadImagesHint: 'PNG/JPG/WEBP supported. Multiple images are allowed.',
+    uploadMask: 'Upload mask',
+    uploadMaskHint: 'Optional, for local edits or masked image editing.',
+    mask: 'Mask',
+    imageEnabled: 'Image enabled',
+    promptAndParams: 'Prompt and parameters',
+    generateHint: 'Without reference images, the image generation endpoint will be used.',
+    editHint: 'Edit mode sends reference images and masks to the image edits endpoint.',
+    generateMode: 'Generate',
+    editMode: 'Edit',
+    prompt: 'Prompt',
+    promptPlaceholder: 'Example: premium commercial photo style orange astronaut cat sticker, clean background, rich detail, soft lighting.',
+    size: 'Size',
+    count: 'Count',
+    quality: 'Quality',
+    format: 'Output format',
+    background: 'Background',
+    style: 'Style',
+    start: 'Start generation',
+    generating: 'Generating...',
+    clear: 'Clear results',
+    preview: 'Preview',
+    previewDesc: 'Base64 images are shown directly, and image URLs from upstream are also supported.',
+    emptyResultTitle: 'No image results yet',
+    emptyResult: 'Generated images will appear here.',
+    download: 'Download',
+    sendToEdit: 'Send to edit',
+    recent: 'Recent',
+    unlimited: 'Unlimited',
+    success: 'Image request completed',
+    failed: 'Image request failed'
   },
 
   modelSquare: {
@@ -5188,6 +5245,7 @@ export default {
         dependencySummary: 'Configuration Dependencies',
         nativePaymentDependency: 'Native payment: requires a payment provider and saleable plans',
         externalPurchaseDependency: 'External purchase: requires a purchase page URL',
+        imageWorkbenchDependency: 'Image Workbench: requires OpenAI image channels, image models and groups that allow image generation',
         registrationDependency: 'Registration: SMTP is required when email verification is enabled',
         modelSquareDependency: 'Model square: requires available channels, active channels, and model pricing',
         availableChannelsDependency: 'Available channels: requires active channels, accessible groups, and model pricing',
@@ -5212,6 +5270,8 @@ export default {
         externalPurchaseEntry: 'Open external purchase page',
         externalPurchaseEntryHint: 'Controls an iframe external purchase entry for your own third-party or fallback purchase page.',
         externalPurchaseUrl: 'External purchase URL',
+        imageWorkbenchEntry: 'Open Image Workbench',
+        imageWorkbenchEntryHint: 'Controls whether users can open the native image generation/editing workbench. Disabled by default.',
         availableChannelsEntry: 'Open available channels',
         availableChannelsEntryHint: 'Controls whether users can see available channels, models and pricing.',
         channelStatusEntry: 'Open channel status',
@@ -6315,6 +6375,9 @@ export default {
     securePaymentTitle: 'Sub2API Secure Payment',
     heroTitle: 'Choose a recharge or subscription service',
     heroDescription: 'Recharge balance or purchase a subscription plan',
+    helpTitle: 'Purchase notes',
+    externalShopDefaultHint: 'Use the shop link below to buy plans or top up. After payment, follow the shop instructions and include your registered email.',
+    externalShopLinkLabel: 'Shop link',
     refresh: 'Refresh',
     refreshed: 'Purchase information refreshed',
     myOrders: 'My Orders',
@@ -6539,31 +6602,67 @@ export default {
     user: {
       welcome: {
         title: '👋 Welcome to Sub2API',
-        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">Hello! Welcome to the Sub2API AI service platform.</p><p style="margin-bottom: 12px;"><b>🎯 Quick Start:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 Create API Key</li><li>📋 Copy key to your application</li><li>🚀 Start using AI services</li></ul><p style="color: #10b981; font-weight: 600;">Just 1 minute, let\'s get started →</p></div>',
+        description: '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">This platform lets you connect Claude, Codex, and GPT-compatible clients through one API gateway.</p><p style="margin-bottom: 12px;"><b>Start with three things:</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>Recharge or confirm your subscription</li><li>Create your own API Key</li><li>Put the Base URL, API Key, and /v1/messages into your client</li></ul><p style="color: #10b981; font-weight: 600;">Follow this flow once and you will know where everything is →</p></div>',
         nextBtn: 'Start 🚀',
         prevBtn: 'Skip'
       },
+      dashboard: {
+        title: 'Dashboard and shortcuts',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">The dashboard shows your balance, subscriptions, recent usage, and common actions.</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>Daily entry:</b> If you are not sure where to go, start here, then open Purchase, API Keys, or Usage Records.</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">Click Dashboard in the sidebar</p></div>'
+      },
+      purchase: {
+        title: 'Recharge / subscription',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Buy plans, subscribe, or add balance here. After payment, your balance or subscription is credited automatically.</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>Tip:</b> If the page says payment is not configured, the administrator has not enabled a real payment provider yet.</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">Click Recharge / Subscription in the sidebar</p></div>'
+      },
+      modelSquare: {
+        title: 'Model square / available models',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">The model square shows models, prices, and groups that are actually available on this site.</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>How to choose:</b> Check your subscription or key group first, then confirm which models that group can call.</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">Click Model Square in the sidebar</p></div>'
+      },
       keyManage: {
         title: '🔑 API Key Management',
-        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Manage all your API access keys here.</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>📌 What is an API Key?</b><br/>An API key is your credential for accessing AI services, like a key that allows your application to call AI capabilities.</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 Click to enter key page</p></div>'
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">An API Key is the key you put into your client. It usually looks like sk-xxx.</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>Note:</b> Each key is bound to a group. The group decides available models and billing.</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">Click API Keys in the sidebar</p></div>'
+      },
+      apiEndpoint: {
+        title: 'Copy the API Base URL',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">This is the Base URL your client needs. Copy the endpoint only; do not paste your API Key into the URL.</p><p style="padding: 8px 12px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 13px;"><b>Claude/Codex setup:</b> Base URL goes here, API Key is your sk-xxx key, and the common request path is /v1/messages.</p></div>'
       },
       createKey: {
         title: '➕ Create New Key',
-        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Click the button to create your first API key.</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Tip:</b> Key is only shown once after creation, make sure to copy and save</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 Click "Create Key"</p></div>'
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Click the button to create your first API Key.</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>Tip:</b> The full key is shown only once. Copy and save it immediately.</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">Click Create Key</p></div>'
       },
       keyName: {
         title: '✏️ Key Name',
-        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Give your key an easy-to-identify name.</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 Examples:</b> "My First Key", "For Testing", etc.</p></div>',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Give the key a name you can recognize later.</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>Examples:</b> Codex local PC, Claude Code, Test Key.</p></div>',
         nextBtn: 'Next'
       },
       keyGroup: {
         title: '🎯 Select Group',
-        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Select the service group assigned by the administrator.</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>📌 Group Info:</b><br/>Different groups may have different service quality and billing rates, choose according to your needs.</p></div>',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Select the service group this key should use.</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>The group decides:</b> which upstream accounts and models this key can use, and how usage is billed.</p></div>',
         nextBtn: 'Next'
       },
       keySubmit: {
         title: '🎉 Complete Creation',
-        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Click to confirm and create your API key.</p><div style="padding: 8px 12px; background: #fee2e2; border-left: 3px solid #ef4444; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>⚠️ Important:</b><ul style="margin: 8px 0 0 16px;"><li>Copy the key (sk-xxx) immediately after creation</li><li>Key is only shown once, need to regenerate if lost</li></ul></div><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>🚀 How to Use:</b><br/>Configure the key in any OpenAI-compatible client (like ChatBox, OpenCat, etc.) and start using!</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 Click "Create" button</p></div>'
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">After clicking create, the system generates your full API Key.</p><div style="padding: 8px 12px; background: #fee2e2; border-left: 3px solid #ef4444; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>Important:</b><ul style="margin: 8px 0 0 16px;"><li>Copy the sk-xxx key immediately</li><li>Use the API address on this page as Base URL</li><li>Claude/Codex clients commonly use /v1/messages</li></ul></div><p style="margin-top: 12px; color: #10b981; font-weight: 600;">Click Create</p></div>'
+      },
+      usage: {
+        title: 'Check usage records',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Usage records show each request model, tokens, cost, and status.</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>Troubleshooting:</b> If a client call fails, first check whether a request was recorded, billed, or rejected here.</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">Click Usage Records in the sidebar</p></div>'
+      },
+      subscriptions: {
+        title: 'My subscriptions',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">View your active subscriptions, expiration time, and usage progress here.</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>Renewal:</b> When a subscription is close to expiry, renew from here or from the purchase page.</p></div>'
+      },
+      orders: {
+        title: 'My orders',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">The orders page tracks recharge, subscription, payment status, and crediting results.</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>Payment issue:</b> If payment succeeded but credit did not arrive, confirm the order status here first.</p></div>'
+      },
+      profile: {
+        title: 'Profile',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">Manage account information and security settings here.</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>Suggestion:</b> Keep your email and password usable so account recovery is reliable.</p></div>'
+      },
+      restartGuide: {
+        title: 'Replay this guide anytime',
+        description: '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">If you forget the workflow later, open the avatar menu in the top right and click Restart Onboarding Tour.</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>Remember:</b> recharge or subscribe, create an API Key, then put Base URL + API Key into your client.</p></div>'
       }
     }
   },

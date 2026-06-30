@@ -308,6 +308,10 @@ const (
 	// sidebar entry is hidden. Defaults to false (opt-in feature).
 	SettingKeyAvailableChannelsEnabled = "available_channels_enabled"
 
+	// SettingKeyImageWorkbenchEnabled controls the native user image workbench.
+	// Defaults to false (opt-in feature); user menu hides it and API returns 403 when disabled.
+	SettingKeyImageWorkbenchEnabled = "image_workbench_enabled"
+
 	// =========================
 	// Overload Cooldown (529)
 	// =========================

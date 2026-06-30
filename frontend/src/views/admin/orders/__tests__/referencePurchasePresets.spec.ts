@@ -15,6 +15,7 @@ describe('referencePurchasePresets', () => {
       '300元3000刀月卡',
     ])
     expect(referencePurchasePresets.map(plan => plan.plan.price)).toEqual([15, 150, 15, 90, 300])
+    expect(referencePurchasePresets.map(plan => plan.plan.validity_unit)).toEqual(['month', 'month', 'day', 'week', 'month'])
     expect(referencePurchasePresets.map(plan => plan.group.monthly_limit_usd ?? 0)).toEqual([120, 1300, 0, 0, 3000])
     expect(referencePurchasePresets.map(plan => plan.group.weekly_limit_usd ?? 0)).toEqual([0, 0, 0, 900, 0])
     expect(referencePurchasePresets.map(plan => plan.group.daily_limit_usd ?? 0)).toEqual([0, 300, 120, 300, 300])
@@ -26,8 +27,7 @@ describe('referencePurchasePresets', () => {
       '300元3000刀月卡',
     ])
     expect(referencePurchasePresets.map(plan => plan.group.rate_multiplier)).toEqual([0.125, 0.115, 0.125, 0.1, 0.1])
-    expect(referencePurchasePresets.map(plan => plan.plan.product_name)).toEqual(['', '', '', '', ''])
-    expect(referencePurchasePresets.map(plan => plan.plan.features)).toEqual(['', '', '', '', ''])
+    expect(referencePurchasePresets.every(plan => plan.plan.product_name === '/v1/messages\ngpt-5.5')).toBe(true)
   })
 
   it('builds admin group and plan payloads that can reproduce the reference cards', () => {
@@ -49,11 +49,11 @@ describe('referencePurchasePresets', () => {
       name: '15元120刀月卡',
       description: '极度的灵活性',
       price: 15,
-      original_price: null,
+      original_price: 0,
       validity_days: 1,
       validity_unit: 'month',
-      product_name: '',
-      features: '',
+      product_name: '/v1/messages\ngpt-5.5',
+      features: '极度的灵活性\n并发上限：5',
       for_sale: true,
       sort_order: 10,
     })

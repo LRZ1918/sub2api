@@ -76,6 +76,14 @@ func RegisterUserRoutes(
 			channels.GET("/available", h.AvailableChannel.List)
 		}
 
+		// 图片工作台（用户原生页面后端接口）
+		imageWorkbench := authenticated.Group("/image-workbench")
+		{
+			imageWorkbench.GET("/options", h.ImageWorkbench.Options)
+			imageWorkbench.POST("/generations", h.ImageWorkbench.Generate)
+			imageWorkbench.POST("/edits", h.ImageWorkbench.Edit)
+		}
+
 		// 使用记录
 		usage := authenticated.Group("/usage")
 		{

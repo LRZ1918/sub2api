@@ -49,11 +49,28 @@ describe('AppSidebar purchase entry feature flags', () => {
 })
 
 describe('AppSidebar native user portal menu', () => {
+  it('shows image workbench only when the public opt-in flag is enabled', () => {
+    expect(buildVisibleUserNavItems({
+      image_workbench_enabled: true,
+      custom_menu_items: [],
+    }).map((item) => item.path)).toContain('/image2')
+
+    expect(buildVisibleUserNavItems({
+      image_workbench_enabled: false,
+      custom_menu_items: [],
+    }).map((item) => item.path)).not.toContain('/image2')
+
+    expect(buildVisibleUserNavItems({
+      custom_menu_items: [],
+    }).map((item) => item.path)).not.toContain('/image2')
+  })
+
   it('shows the full native user portal when enhanced features are enabled', () => {
     const items = buildVisibleUserNavItems({
       payment_enabled: true,
       purchase_subscription_enabled: false,
       available_channels_enabled: true,
+      image_workbench_enabled: true,
       channel_monitor_enabled: true,
       affiliate_enabled: true,
       custom_menu_items: [],
@@ -62,6 +79,7 @@ describe('AppSidebar native user portal menu', () => {
     expect(items.map((item) => item.path)).toEqual([
       '/dashboard',
       '/keys',
+      '/image2',
       '/usage',
       '/subscriptions',
       '/purchase',

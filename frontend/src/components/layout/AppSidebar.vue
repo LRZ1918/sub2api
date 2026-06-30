@@ -108,7 +108,7 @@
             class="sidebar-link mb-1"
             :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
             :title="sidebarCollapsed ? item.label : undefined"
-            :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
+            :data-tour="tourAttributeForPath(item.path)"
             @click="handleMenuItemClick(item.path)"
           >
             <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
@@ -128,7 +128,7 @@
             class="sidebar-link mb-1"
             :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
             :title="sidebarCollapsed ? item.label : undefined"
-            :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
+            :data-tour="tourAttributeForPath(item.path)"
             @click="handleMenuItemClick(item.path)"
           >
             <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
@@ -664,6 +664,8 @@ function toSidebarNavItem(item: VisibleUserNavItem): NavItem {
       return { path: item.path, label: t('nav.dashboard'), icon: DashboardIcon }
     case 'keys':
       return { path: item.path, label: t('nav.apiKeys'), icon: KeyIcon }
+    case 'imageWorkbench':
+      return { path: item.path, label: t('nav.imageWorkbench'), icon: ChannelIcon, hideInSimpleMode: item.hideInSimpleMode }
     case 'usage':
       return { path: item.path, label: t('nav.usage'), icon: ChartIcon, hideInSimpleMode: item.hideInSimpleMode }
     case 'subscriptions':
@@ -694,6 +696,21 @@ function buildSelfNavItems(withDashboard: boolean): NavItem[] {
     withDashboard,
     simpleMode: authStore.isSimpleMode,
   }).map(toSidebarNavItem)
+}
+
+function tourAttributeForPath(path: string): string | undefined {
+  const pathToTour: Record<string, string> = {
+    '/dashboard': 'sidebar-dashboard',
+    '/keys': 'sidebar-my-keys',
+    '/usage': 'sidebar-usage',
+    '/subscriptions': 'sidebar-subscriptions',
+    '/purchase': 'sidebar-purchase',
+    '/custom/model-square': 'sidebar-model-square',
+    '/orders': 'sidebar-orders',
+    '/profile': 'sidebar-profile',
+  }
+
+  return pathToTour[path]
 }
 
 // User navigation items (for regular users)
@@ -810,7 +827,14 @@ function handleMenuItemClick(itemPath: string) {
   const pathToSelector: Record<string, string> = {
     '/admin/groups': '#sidebar-group-manage',
     '/admin/accounts': '#sidebar-channel-manage',
-    '/keys': '[data-tour="sidebar-my-keys"]'
+    '/dashboard': '[data-tour="sidebar-dashboard"]',
+    '/keys': '[data-tour="sidebar-my-keys"]',
+    '/usage': '[data-tour="sidebar-usage"]',
+    '/subscriptions': '[data-tour="sidebar-subscriptions"]',
+    '/purchase': '[data-tour="sidebar-purchase"]',
+    '/custom/model-square': '[data-tour="sidebar-model-square"]',
+    '/orders': '[data-tour="sidebar-orders"]',
+    '/profile': '[data-tour="sidebar-profile"]',
   }
 
   const selector = pathToSelector[itemPath]

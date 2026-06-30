@@ -38,14 +38,38 @@ const (
 	launchOverallReady             = "launch_ready"
 )
 
-var launchReadinessRequiredFiles = []string{
-	"deploy/docker-compose.production.yml",
-	"deploy/production.env.example",
-	"deploy/Caddyfile.production.example",
-	"deploy/PRODUCTION_INPUTS_CN.md",
-	"deploy/ops/backup.sh",
-	"deploy/ops/healthcheck.sh",
-}
+var (
+	launchReadinessCoreDeploymentFiles = []string{
+		"deploy/PRODUCTION_INPUTS_CN.md",
+	}
+	launchReadinessLinuxDeploymentFiles = []string{
+		"deploy/docker-compose.production.yml",
+		"deploy/production.env.example",
+		"deploy/Caddyfile.production.example",
+		"deploy/ops/backup.sh",
+		"deploy/ops/healthcheck.sh",
+	}
+	launchReadinessWindowsDeploymentFiles = []string{
+		"deploy/docker-compose.production.yml",
+		"deploy/windows-tunnel.env.example",
+		"deploy/WINDOWS_TUNNEL_DEPLOY_CN.md",
+		"deploy/ops/backup.ps1",
+		"deploy/ops/healthcheck.ps1",
+	}
+	launchReadinessWindowsSourceDeploymentFiles = []string{
+		"deploy/WINDOWS_SOURCE_DEPLOY_CN.md",
+		"deploy/source-windows.env.example",
+		"deploy/ops/build-source-windows.ps1",
+		"deploy/ops/start-source-windows-deps.ps1",
+		"deploy/ops/run-source-windows.ps1",
+		"deploy/ops/start-source-windows-tunnel.ps1",
+		"deploy/ops/start-source-windows-all.ps1",
+		"deploy/ops/install-source-windows-autostart.ps1",
+		"deploy/ops/stop-source-windows.ps1",
+		"deploy/ops/backup-source-windows.ps1",
+		"deploy/ops/healthcheck-source-windows.ps1",
+	}
+)
 
 type LaunchReadinessHandler struct {
 	client               *dbent.Client
@@ -347,8 +371,9 @@ func (h *LaunchReadinessHandler) loadChannelCounts(ctx context.Context) (int, in
 
 func inspectLaunchDeploymentFiles() map[string]bool {
 	root := findLaunchProjectRoot()
-	result := make(map[string]bool, len(launchReadinessRequiredFiles))
-	for _, rel := range launchReadinessRequiredFiles {
+	requiredFiles := launchReadinessDeploymentFiles()
+	result := make(map[string]bool, len(requiredFiles))
+	for _, rel := range requiredFiles {
 		_, err := os.Stat(filepath.Join(root, filepath.FromSlash(rel)))
 		result[rel] = err == nil
 	}
@@ -418,7 +443,7 @@ func buildDeploymentReadinessSection(snapshot launchReadinessSnapshot) launchRea
 		check(
 			"deployment_assets",
 			"生产部署文件",
-			"已准备 Docker Compose、环境变量示例、Caddy 反代和运维脚本。",
+			"已准备环境变量示例、部署手册、运维脚本，以及 Linux Docker、Windows Docker 或 Windows 源码编译中的任一部署路线。",
 			allDeploymentFilesPresent(snapshot.DeploymentFiles),
 			readinessStatusFail,
 			deploymentFilesValue(snapshot.DeploymentFiles),
@@ -444,7 +469,7 @@ func buildDeploymentReadinessSection(snapshot launchReadinessSnapshot) launchRea
 		check(
 			"trusted_proxies",
 			"可信反代来源",
-			"生产环境通过 Caddy/Nginx 反代时必须只信任实际反代地址，避免真实 IP 失真或被伪造。",
+			"生产环境通过 Caddy/Nginx/内网穿透入口时必须只信任实际入口地址，避免真实 IP 失真或被伪造。",
 			len(snapshot.TrustedProxies) > 0,
 			readinessStatusFail,
 			trustedProxiesValue(snapshot.TrustedProxies),
@@ -469,7 +494,7 @@ func buildSystemReadinessSection(snapshot launchReadinessSnapshot) launchReadine
 	checks := []launchReadinessCheck{
 		check("admin_user", "管理员账号", "生产库必须至少有一个管理员账号，并且上线前要更换默认密码。", snapshot.AdminUsers > 0, readinessStatusFail, fmt.Sprintf("%d 个", snapshot.AdminUsers), "去用户管理", "/admin/users"),
 		check("backend_mode", "后台模式", "首版建议开启后台模式，只允许管理员登录，先控制用户范围。", snapshot.Settings.BackendModeEnabled, readinessStatusWarn, boolText(snapshot.Settings.BackendModeEnabled), "去系统设置", "/admin/settings"),
-		check("registration_policy", "注册策略", "正式收费前建议先关闭公开注册，等账号池和支付稳定后再逐步开放。", !snapshot.Settings.RegistrationEnabled, readinessStatusWarn, boolText(snapshot.Settings.RegistrationEnabled), "去系统设置", "/admin/settings"),
+		check("registration_policy", "注册入口", "开放运营需要明确开启用户注册入口；邮箱验证、邀请码和风控策略可按放量节奏单独配置。", snapshot.Settings.RegistrationEnabled, readinessStatusWarn, boolText(snapshot.Settings.RegistrationEnabled), "去系统设置", "/admin/settings"),
 		check("registration_email_verification", "邮箱验证", "开启邮箱验证或密码重置前，需要先配置 SMTP 并发送测试邮件，避免用户注册卡在验证码步骤。", !snapshot.Settings.EmailVerifyEnabled || snapshot.Settings.SMTPConfigured, readinessStatusWarn, emailVerificationValue(snapshot.Settings), "去邮箱设置", "/admin/settings"),
 		passCheck("registration_invitation_code", "邀请码注册", "开启后新用户必须填写有效邀请码，适合首批内测和小范围放量。", enabledText(snapshot.Settings.InvitationCodeEnabled)),
 		passCheck("registration_promo_code", "注册优惠码", "控制注册页是否显示优惠码入口，用于首批赠送余额或活动码。", enabledText(snapshot.Settings.PromoCodeEnabled)),
@@ -619,8 +644,8 @@ func buildUserPortalReadinessSection(snapshot launchReadinessSnapshot) launchRea
 
 func buildOperationsReadinessSection(snapshot launchReadinessSnapshot) launchReadinessSection {
 	checks := []launchReadinessCheck{
-		check("backup_script", "备份脚本", "部署包需要包含备份脚本，生产环境至少备份 data、postgres_data、redis_data 和 .env。", snapshot.DeploymentFiles["deploy/ops/backup.sh"], readinessStatusFail, boolText(snapshot.DeploymentFiles["deploy/ops/backup.sh"]), "查看运维", "/admin/ops"),
-		check("healthcheck_script", "健康检查脚本", "部署包需要包含健康检查脚本，用于上线后巡检 /health 和容器状态。", snapshot.DeploymentFiles["deploy/ops/healthcheck.sh"], readinessStatusFail, boolText(snapshot.DeploymentFiles["deploy/ops/healthcheck.sh"]), "查看运维", "/admin/ops"),
+		check("backup_script", "备份脚本", "部署包需要包含 Windows PowerShell 或 Linux shell 备份脚本，生产环境至少备份 data、PostgreSQL、Redis 持久化数据和环境变量文件。", deploymentScriptPresent(snapshot.DeploymentFiles, "deploy/ops/backup.sh", "deploy/ops/backup.ps1", "deploy/ops/backup-source-windows.ps1"), readinessStatusFail, deploymentScriptValue(snapshot.DeploymentFiles, "deploy/ops/backup.sh", "deploy/ops/backup.ps1", "deploy/ops/backup-source-windows.ps1"), "查看运维", "/admin/ops"),
+		check("healthcheck_script", "健康检查脚本", "部署包需要包含 Windows PowerShell 或 Linux shell 健康检查脚本，用于上线后巡检 /health、进程或容器状态。", deploymentScriptPresent(snapshot.DeploymentFiles, "deploy/ops/healthcheck.sh", "deploy/ops/healthcheck.ps1", "deploy/ops/healthcheck-source-windows.ps1"), readinessStatusFail, deploymentScriptValue(snapshot.DeploymentFiles, "deploy/ops/healthcheck.sh", "deploy/ops/healthcheck.ps1", "deploy/ops/healthcheck-source-windows.ps1"), "查看运维", "/admin/ops"),
 		check("ops_monitoring", "运维监控开关", "建议开启 Ops 监控，方便上线后查看错误、请求链路、QPS 和延迟。", snapshot.Settings.OpsMonitoringEnabled, readinessStatusWarn, boolText(snapshot.Settings.OpsMonitoringEnabled), "去运维面板", "/admin/ops"),
 		check("alert_rules", "告警规则", "建议至少配置一条告警规则，用于捕捉上游错误率、延迟或失败请求。", snapshot.OpsAlertRules > 0, readinessStatusWarn, fmt.Sprintf("%d 条", snapshot.OpsAlertRules), "去告警规则", "/admin/ops"),
 	}
@@ -674,8 +699,26 @@ func check(id, title, description string, ok bool, failedStatus, value, actionLa
 	}
 }
 
+func launchReadinessDeploymentFiles() []string {
+	files := make([]string, 0, len(launchReadinessCoreDeploymentFiles)+len(launchReadinessLinuxDeploymentFiles)+len(launchReadinessWindowsDeploymentFiles)+len(launchReadinessWindowsSourceDeploymentFiles))
+	files = append(files, launchReadinessCoreDeploymentFiles...)
+	files = append(files, launchReadinessLinuxDeploymentFiles...)
+	files = append(files, launchReadinessWindowsDeploymentFiles...)
+	files = append(files, launchReadinessWindowsSourceDeploymentFiles...)
+	return files
+}
+
 func allDeploymentFilesPresent(files map[string]bool) bool {
-	for _, rel := range launchReadinessRequiredFiles {
+	if !deploymentFilesPresent(files, launchReadinessCoreDeploymentFiles) {
+		return false
+	}
+	return deploymentFilesPresent(files, launchReadinessLinuxDeploymentFiles) ||
+		deploymentFilesPresent(files, launchReadinessWindowsDeploymentFiles) ||
+		deploymentFilesPresent(files, launchReadinessWindowsSourceDeploymentFiles)
+}
+
+func deploymentFilesPresent(files map[string]bool, required []string) bool {
+	for _, rel := range required {
 		if !files[rel] {
 			return false
 		}
@@ -684,13 +727,59 @@ func allDeploymentFilesPresent(files map[string]bool) bool {
 }
 
 func deploymentFilesValue(files map[string]bool) string {
+	corePresent := countDeploymentFiles(files, launchReadinessCoreDeploymentFiles)
+	route, routePresent := bestDeploymentRoute(files)
+	return fmt.Sprintf("%d/%d", corePresent+routePresent, len(launchReadinessCoreDeploymentFiles)+len(route))
+}
+
+func bestDeploymentRoute(files map[string]bool) ([]string, int) {
+	routes := [][]string{
+		launchReadinessLinuxDeploymentFiles,
+		launchReadinessWindowsDeploymentFiles,
+		launchReadinessWindowsSourceDeploymentFiles,
+	}
+	bestRoute := routes[0]
+	bestPresent := -1
+	for _, route := range routes {
+		present := countDeploymentFiles(files, route)
+		if present > bestPresent {
+			bestRoute = route
+			bestPresent = present
+		}
+	}
+	return bestRoute, bestPresent
+}
+
+func countDeploymentFiles(files map[string]bool, required []string) int {
 	present := 0
-	for _, rel := range launchReadinessRequiredFiles {
+	for _, rel := range required {
 		if files[rel] {
 			present++
 		}
 	}
-	return fmt.Sprintf("%d/%d", present, len(launchReadinessRequiredFiles))
+	return present
+}
+
+func deploymentScriptPresent(files map[string]bool, candidates ...string) bool {
+	for _, rel := range candidates {
+		if files[rel] {
+			return true
+		}
+	}
+	return false
+}
+
+func deploymentScriptValue(files map[string]bool, candidates ...string) string {
+	present := make([]string, 0, len(candidates))
+	for _, rel := range candidates {
+		if files[rel] {
+			present = append(present, filepath.Base(rel))
+		}
+	}
+	if len(present) == 0 {
+		return "missing"
+	}
+	return strings.Join(present, ",")
 }
 
 func trustedProxiesValue(values []string) string {

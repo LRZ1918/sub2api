@@ -2,6 +2,7 @@ import { onMounted, onUnmounted, nextTick } from 'vue'
 import { driver, type Driver, type DriveStep } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useAuthStore as useUserStore } from '@/stores/auth'
+import { useAppStore } from '@/stores/app'
 import { useOnboardingStore } from '@/stores/onboarding'
 import { useI18n } from 'vue-i18n'
 import { getAdminSteps, getUserSteps } from '@/components/Guide/steps'
@@ -14,8 +15,9 @@ export interface OnboardingOptions {
 export function useOnboardingTour(options: OnboardingOptions) {
   const { t } = useI18n()
   const userStore = useUserStore()
+  const appStore = useAppStore()
   const onboardingStore = useOnboardingStore()
-  const storageVersion = 'v4_interactive' // Bump version for new tour type
+  const storageVersion = 'v5_user_full_flow' // Bump version for the expanded user tour
 
   // Timing constants for better maintainability
   const TIMING = {
@@ -95,7 +97,17 @@ export function useOnboardingTour(options: OnboardingOptions) {
     // 动态获取当前用户角色和步骤
     const isAdmin = userStore.user?.role === 'admin'
     const isSimpleMode = userStore.isSimpleMode
-    const steps = isAdmin ? getAdminSteps(t, isSimpleMode) : getUserSteps(t)
+
+    if (!appStore.publicSettingsLoaded) {
+      await appStore.fetchPublicSettings()
+    }
+
+    const steps = isAdmin
+      ? getAdminSteps(t, isSimpleMode)
+      : getUserSteps(t, {
+          settings: appStore.cachedPublicSettings,
+          simpleMode: isSimpleMode,
+        })
 
     // 确保 DOM 就绪
     await nextTick()
@@ -533,12 +545,6 @@ export function useOnboardingTour(options: OnboardingOptions) {
 
     // 简易模式下禁用新手引导
     if (userStore.isSimpleMode) {
-      return
-    }
-
-    // 只在管理员+标准模式下自动启动
-    const isAdmin = userStore.user?.role === 'admin'
-    if (!isAdmin) {
       return
     }
 

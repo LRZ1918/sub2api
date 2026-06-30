@@ -19,43 +19,49 @@ export interface CcSwitchImportDeeplinkInput {
   usageScript: string
 }
 
+export function normalizeCcSwitchEndpoint(baseUrl: string): string {
+  return (baseUrl || '').replace(/\/v1\/?$/, '').replace(/\/+$/, '')
+}
+
 export function resolveCcSwitchImportConfig(
   platform: GroupPlatform | undefined | null,
   clientType: CcSwitchClientType,
   baseUrl: string
 ): CcSwitchImportConfig {
+  const endpointBaseUrl = normalizeCcSwitchEndpoint(baseUrl)
   switch (platform || 'anthropic') {
     case 'antigravity':
       return {
         app: clientType === 'gemini' ? 'gemini' : 'claude',
-        endpoint: `${baseUrl}/antigravity`
+        endpoint: `${endpointBaseUrl}/antigravity`
       }
     case 'openai':
       return {
         app: 'codex',
-        endpoint: baseUrl,
+        endpoint: endpointBaseUrl,
         model: OPENAI_CC_SWITCH_CODEX_MODEL
       }
     case 'gemini':
       return {
         app: 'gemini',
-        endpoint: baseUrl
+        endpoint: endpointBaseUrl
       }
     default:
       return {
         app: 'claude',
-        endpoint: baseUrl
+        endpoint: endpointBaseUrl
       }
   }
 }
 
 export function buildCcSwitchImportDeeplink(input: CcSwitchImportDeeplinkInput): string {
   const config = resolveCcSwitchImportConfig(input.platform, input.clientType, input.baseUrl)
+  const endpointBaseUrl = normalizeCcSwitchEndpoint(input.baseUrl)
   const entries: [string, string][] = [
     ['resource', 'provider'],
     ['app', config.app],
     ['name', input.providerName],
-    ['homepage', input.baseUrl],
+    ['homepage', endpointBaseUrl],
     ['endpoint', config.endpoint],
     ['apiKey', input.apiKey],
     ['configFormat', 'json'],

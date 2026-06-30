@@ -1,21 +1,25 @@
 # Sub2API 生产上线资料清单
 
-这份清单用于在正式部署前收集必要资料。不要把填好的真实密钥、账号、Cookie、私钥或代理密码提交到 Git；只在服务器 `.env`、后台表单或安全密码管理器中保存。
+这份清单用于在正式部署前收集必要资料。当前首版目标是 Windows 本机 + 源码编译二进制 + 本机 PostgreSQL/Redis + 内网穿透 HTTPS；Windows Docker Compose 和 Linux VPS + Caddy 仍作为可选部署路线保留。不要把填好的真实密钥、账号、Cookie、私钥或代理密码提交到 Git；只在服务器 `.env`、后台表单或安全密码管理器中保存。
 
 ## 1. 基础部署资料
 
 | 项目 | 填写位置 | 验证方式 | 状态 |
 | --- | --- | --- | --- |
-| VPS 公网 IP | DNS A 记录 | `ping 你的域名` 指向该 IP | 待准备 |
-| 域名 | DNS 控制台 | `https://你的域名/health` 返回 `{"status":"ok"}` | 待准备 |
-| Linux 用户 | SSH | 能 `ssh user@ip` 登录 | 待准备 |
-| Docker / Compose | VPS | `docker version`、`docker compose version` | 待准备 |
-| 80/443 防火墙 | VPS/云厂商安全组 | Caddy 能申请 HTTPS 证书 | 待准备 |
+| Windows 服务器电脑 | 本机 | Docker Desktop 可运行，重启后可恢复 | 待准备 |
+| Go / Node.js / Corepack | Windows 本机 | `go version`、`node --version`、`corepack --version` | 待准备 |
+| PostgreSQL 服务 | Windows 本机或内网服务 | `psql --version`、数据库 `sub2api` 可连接 | 待准备 |
+| Redis 兼容服务 | Windows 本机或内网服务 | `redis-cli ping` 返回 `PONG` | 待准备 |
+| 公网 HTTPS 域名 | 内网穿透服务 | `https://你的域名/health` 返回 `{"status":"ok"}` | 待准备 |
+| 内网穿透客户端 | Windows 服务/开机任务 | 能转发到 `http://127.0.0.1:8080` | 待准备 |
+| Linux VPS 公网 IP（可选） | DNS A 记录 | 仅 Linux VPS 路线需要 | 可选 |
+| Linux 用户（可选） | SSH | 仅 Linux VPS 路线需要 | 可选 |
+| 80/443 防火墙（可选） | VPS/云厂商安全组 | 仅 Caddy/Nginx 直连路线需要 | 可选 |
 | 管理员邮箱 | 初始化/后台用户 | 能登录后台并改密码 | 待准备 |
 
 ## 2. 生产 `.env` 必填项
 
-复制 `deploy/production.env.example` 为服务器部署目录中的 `.env`，然后填以下值：
+Windows 源码编译路线优先运行 `deploy/ops/prepare-source-windows-env.ps1` 生成 `deploy/source-windows.env`。Windows Docker 内网穿透路线运行 `deploy/ops/prepare-windows-env.ps1` 生成 `deploy/windows-tunnel.env`。Linux VPS 路线复制 `deploy/production.env.example` 为服务器部署目录中的 `.env`。然后填以下值：
 
 | 环境变量 | 用途 | 要求 | 状态 |
 | --- | --- | --- | --- |
@@ -23,7 +27,7 @@
 | `JWT_SECRET` | 登录 token 签名 | 固定随机值，至少 32 字节 | 待填写 |
 | `TOTP_ENCRYPTION_KEY` | 2FA 密钥加密 | 固定随机值，32 字节 | 待填写 |
 | `SERVER_FRONTEND_URL` | 公网基础地址 | `https://你的域名`，不要带路径 | 待填写 |
-| `SERVER_TRUSTED_PROXIES` | 可信反代来源 | Caddy 同机保持 `127.0.0.1/32,::1/128` | 待确认 |
+| `SERVER_TRUSTED_PROXIES` | 可信反代来源 | Windows 内网穿透和同机 Caddy 均保持 `127.0.0.1/32,::1/128`，不要填 `0.0.0.0/0` | 待确认 |
 | `SECURITY_URL_ALLOWLIST_ENABLED` | URL 白名单 | 生产保持 `true` | 待确认 |
 | `SECURITY_URL_ALLOWLIST_ALLOW_INSECURE_HTTP` | 禁止 HTTP 上游 | 生产保持 `false` | 待确认 |
 | `SECURITY_URL_ALLOWLIST_ALLOW_PRIVATE_HOSTS` | 禁止私网 URL | 生产保持 `false` | 待确认 |
@@ -35,7 +39,31 @@
 openssl rand -hex 32
 ```
 
-## 3. Caddy HTTPS 资料
+## 3. 公网 HTTPS 入口资料
+
+Windows 首版推荐 Cloudflare Tunnel；如果已使用 frp/ngrok，也必须保证公网入口是 HTTPS，并转发到 `http://127.0.0.1:8080`。
+
+| 项目 | 填写位置 | 要求 | 状态 |
+| --- | --- | --- | --- |
+| 公网域名 | Cloudflare/frp/ngrok 控制台 | 指向 Windows 本机隧道 | 待填写 |
+| 隧道目标 | 内网穿透配置 | `http://127.0.0.1:8080` | 待确认 |
+| Windows 自启 | Windows 服务/计划任务 | 重启后隧道自动恢复 | 待确认 |
+| WebSocket | 内网穿透服务 | 必须支持 | 待确认 |
+| HTTPS | 内网穿透服务 | 公网必须是 HTTPS | 待验证 |
+
+验证命令：
+
+```powershell
+Invoke-WebRequest -UseBasicParsing https://你的域名/health
+```
+
+期望：
+
+```json
+{"status":"ok"}
+```
+
+### Linux VPS / Caddy 可选资料
 
 | 项目 | 填写位置 | 要求 | 状态 |
 | --- | --- | --- | --- |
@@ -44,7 +72,7 @@ openssl rand -hex 32
 | 真实 IP 头 | `Caddyfile` | 保留 `X-Forwarded-For` / `X-Real-IP` | 待确认 |
 | HTTPS 证书 | Caddy 自动签发 | 域名已解析且 80/443 可访问 | 待验证 |
 
-验证命令：
+Linux VPS 路线验证命令：
 
 ```bash
 curl -fsS https://你的域名/health

@@ -1,6 +1,7 @@
 export type UserNavItemKey =
   | 'dashboard'
   | 'keys'
+  | 'imageWorkbench'
   | 'usage'
   | 'subscriptions'
   | 'purchase'
@@ -17,6 +18,7 @@ export interface UserNavSettings {
   payment_enabled?: boolean
   purchase_subscription_enabled?: boolean
   available_channels_enabled?: boolean
+  image_workbench_enabled?: boolean
   channel_monitor_enabled?: boolean
   affiliate_enabled?: boolean
   custom_menu_items?: CustomUserMenuItem[]
@@ -56,14 +58,16 @@ export function buildVisibleUserNavItems(
   const paymentEnabled = enabled(settings?.payment_enabled, true)
   const externalPurchaseEnabled = enabled(settings?.purchase_subscription_enabled, false)
   const availableChannelsEnabled = enabled(settings?.available_channels_enabled, false)
+  const imageWorkbenchEnabled = enabled(settings?.image_workbench_enabled, false)
   const channelMonitorEnabled = enabled(settings?.channel_monitor_enabled, true)
   const affiliateEnabled = enabled(settings?.affiliate_enabled, false)
   const showPurchase = paymentEnabled || externalPurchaseEnabled
 
   const items: VisibleUserNavItem[] = []
   if (withDashboard) items.push({ key: 'dashboard', path: '/dashboard' })
+  items.push({ key: 'keys', path: '/keys' })
+  if (imageWorkbenchEnabled) items.push({ key: 'imageWorkbench', path: '/image2', hideInSimpleMode: true })
   items.push(
-    { key: 'keys', path: '/keys' },
     { key: 'usage', path: '/usage', hideInSimpleMode: true },
     { key: 'subscriptions', path: '/subscriptions', hideInSimpleMode: true },
   )

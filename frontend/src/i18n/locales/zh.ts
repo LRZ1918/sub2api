@@ -345,6 +345,7 @@ export default {
     dashboard: '仪表盘',
     announcements: '公告',
     apiKeys: 'API 密钥',
+    imageWorkbench: '图片工作台',
     usage: '使用记录',
     redeem: '兑换',
     affiliate: '邀请返利',
@@ -1000,6 +1001,62 @@ export default {
       unitPerMillion: '/ 1M token',
       unitPerRequest: '/ 次'
     }
+  },
+
+  imageWorkbench: {
+    title: '图片工作台',
+    description: '直接选择自己的 API Key，调用站内图片接口进行生图或改图。',
+    gatewayLabel: '网关地址',
+    nativeBadge: '站内原生模块',
+    realKeyBillingHint: '使用真实用户 Key 与原计费规则',
+    disabledTitle: '图片工作台未开启',
+    disabledDesc: '管理员还没有开放图片工作台入口。开启后，你可以在站内选择自己的 API Key 生成或编辑图片。',
+    refresh: '刷新',
+    loadFailedTitle: '图片工作台暂时不可用',
+    loadFailedDesc: '无法加载图片工作台配置，请稍后重试。',
+    retry: '重试',
+    noKeysTitle: '暂无可用图片 API Key',
+    noKeysDesc: '请先创建可用 API Key，或联系管理员确认分组已开启图片生成权限。',
+    noModelsTitle: '暂无可用图片模型',
+    noModelsDesc: '管理员尚未配置可用的图片模型或模型定价。',
+    chooseKey: '选择密钥',
+    apiKey: 'API Key',
+    unknownGroup: '未命名分组',
+    quotaRemaining: '剩余额度',
+    model: '模型',
+    references: '参考图',
+    uploadImages: '上传参考图',
+    uploadImagesHint: '支持 PNG/JPG/WEBP，可一次上传多张。',
+    uploadMask: '上传遮罩',
+    uploadMaskHint: '可选，用于局部编辑或遮罩改图。',
+    mask: '遮罩',
+    imageEnabled: '已启用生图',
+    promptAndParams: '提示词与参数',
+    generateHint: '未上传参考图时，将调用图片生成接口。',
+    editHint: '编辑模式会把参考图和遮罩提交到图片编辑接口。',
+    generateMode: '生图',
+    editMode: '改图',
+    prompt: '提示词',
+    promptPlaceholder: '例如：高级商业摄影风格的橙色宇航员猫咪贴纸，干净背景，细节丰富，柔和光影。',
+    size: '尺寸',
+    count: '张数',
+    quality: '质量',
+    format: '输出格式',
+    background: '背景',
+    style: '风格',
+    start: '开始生图',
+    generating: '生成中...',
+    clear: '清空结果',
+    preview: '结果预览',
+    previewDesc: '优先展示 base64 结果，也兼容上游返回的图片 URL。',
+    emptyResultTitle: '还没有图片结果',
+    emptyResult: '生成完成后，图片会显示在这里。',
+    download: '下载',
+    sendToEdit: '发送到编辑',
+    recent: '最近记录',
+    unlimited: '不限',
+    success: '图片请求完成',
+    failed: '图片请求失败'
   },
 
   modelSquare: {
@@ -5341,6 +5398,7 @@ export default {
         dependencySummary: '配置依赖',
         nativePaymentDependency: '原生支付：需要支付服务商和可售套餐',
         externalPurchaseDependency: '外链购买：需要购买页 URL',
+        imageWorkbenchDependency: '图片工作台：依赖可用 OpenAI 图片渠道、图片模型和允许生图的分组',
         registrationDependency: '注册：开启邮箱验证时需要先配置 SMTP',
         modelSquareDependency: '模型广场：依赖可用渠道、活跃渠道和模型定价',
         availableChannelsDependency: '可用渠道：依赖活跃渠道、可访问分组和模型定价',
@@ -5365,6 +5423,8 @@ export default {
         externalPurchaseEntry: '开放外链购买页',
         externalPurchaseEntryHint: '控制 iframe 外部购买入口；仅用于你自己的第三方购买页或备用购买页。',
         externalPurchaseUrl: '外链购买页 URL',
+        imageWorkbenchEntry: '开放图片工作台',
+        imageWorkbenchEntryHint: '控制普通用户是否能打开原生图片生图/改图页面；默认关闭。',
         availableChannelsEntry: '开放可用渠道',
         availableChannelsEntryHint: '控制普通用户是否能看到可用渠道、模型和价格视图。',
         channelStatusEntry: '开放渠道状态',
@@ -6465,6 +6525,9 @@ export default {
     securePaymentTitle: 'Sub2API 安全支付',
     heroTitle: '选择适合你的 充值/订阅服务',
     heroDescription: '充值余额或者订阅套餐',
+    helpTitle: '购买说明',
+    externalShopDefaultHint: '我的小铺(o´ω`o)ﾉ：请通过下方店铺链接购买套餐或充值，付款后按店铺提示备注注册邮箱，到账异常请联系店铺客服。',
+    externalShopLinkLabel: '店铺链接',
     refresh: '刷新',
     refreshed: '购买信息已刷新',
     myOrders: '我的订单',
@@ -6708,36 +6771,81 @@ export default {
       welcome: {
         title: '👋 欢迎使用 Sub2API',
         description:
-          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">您好！欢迎来到 Sub2API AI 服务平台。</p><p style="margin-bottom: 12px;"><b>🎯 快速开始：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>🔑 创建 API 密钥</li><li>📋 复制密钥到您的应用</li><li>🚀 开始使用 AI 服务</li></ul><p style="color: #10b981; font-weight: 600;">只需 1 分钟，让我们开始吧 →</p></div>',
+          '<div style="line-height: 1.8;"><p style="margin-bottom: 16px;">这里是把 Claude / Codex / GPT 接入各种客户端的中转平台。</p><p style="margin-bottom: 12px;"><b>你需要完成三件事：</b></p><ul style="margin-left: 20px; margin-bottom: 16px;"><li>先充值或确认订阅是否可用</li><li>创建自己的 API Key</li><li>把 Base URL、API Key 和 /v1/messages 填到客户端里</li></ul><p style="color: #10b981; font-weight: 600;">跟着这条流程走一遍，就知道每天该在哪里操作了 →</p></div>',
         nextBtn: '开始 🚀',
         prevBtn: '跳过'
+      },
+      dashboard: {
+        title: '仪表盘和快捷入口',
+        description:
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">仪表盘会展示余额、订阅、最近用量和常用操作。</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>日常入口：</b>不会用的时候先回到仪表盘，再进入充值、API 密钥或使用记录。</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">点击左侧“仪表盘”继续</p></div>'
+      },
+      purchase: {
+        title: '充值/订阅入口',
+        description:
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">这里购买套餐、订阅或给账户余额充值。支付完成后，余额或订阅会自动到账。</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>提示：</b>如果页面显示支付方式未配置，说明管理员还没开放真实支付入口。</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">点击左侧“充值/订阅”查看套餐</p></div>'
+      },
+      modelSquare: {
+        title: '模型广场/可用模型',
+        description:
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">模型广场展示当前站点真实可调用的模型、价格和可用分组。</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>怎么选：</b>先看你订阅或密钥所属分组，再确认这个分组支持哪些模型。</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">点击左侧“模型广场”查看可用模型</p></div>'
       },
       keyManage: {
         title: '🔑 API 密钥管理',
         description:
-          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">在这里管理您的所有 API 访问密钥。</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>📌 什么是 API 密钥？</b><br/>API 密钥是您访问 AI 服务的凭证，就像一把钥匙，让您的应用能够调用 AI 能力。</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 点击进入密钥页面</p></div>'
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">API 密钥是你接入客户端时填写的 Key，格式通常类似 sk-xxx。</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>注意：</b>一个 Key 会绑定一个分组，能用哪些模型、怎么扣费都由分组决定。</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">点击左侧“API 密钥”进入密钥页</p></div>'
+      },
+      apiEndpoint: {
+        title: '复制 API 请求地址',
+        description:
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">这里是客户端要填写的 Base URL。复制时只复制域名和基础路径，不要把密钥拼进去。</p><p style="padding: 8px 12px; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 4px; font-size: 13px;"><b>Claude/Codex 接入：</b>Base URL 填这里的地址，API Key 填你创建出来的 sk-xxx，请求路径一般走 /v1/messages。</p></div>'
       },
       createKey: {
         title: '➕ 创建新密钥',
         description:
-          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">点击按钮创建您的第一个 API 密钥。</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 提示：</b>创建后密钥只显示一次，请务必复制保存</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 点击"创建密钥"</p></div>'
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">点击按钮创建你的第一个 API Key。</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>提示：</b>密钥创建后只完整显示一次，请马上复制保存。</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">点击“创建密钥”</p></div>'
       },
       keyName: {
         title: '✏️ 密钥名称',
         description:
-          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">为密钥起一个便于识别的名称。</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>💡 示例：</b>"我的第一个密钥"、"测试用" 等</p></div>',
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">给密钥起一个你自己能看懂的名字。</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>示例：</b>Codex 本地电脑、Claude Code、测试用 Key。</p></div>',
         nextBtn: '下一步'
       },
       keyGroup: {
         title: '🎯 选择分组',
         description:
-          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">选择管理员为您分配的服务分组。</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>📌 分组说明：</b><br/>不同分组可能有不同的服务质量和计费标准，请根据需要选择。</p></div>',
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">选择密钥要使用的服务分组。</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>分组决定：</b>这个 Key 能访问哪些上游账号、哪些模型，以及使用时怎么扣费。</p></div>',
         nextBtn: '下一步'
       },
       keySubmit: {
         title: '🎉 完成创建',
         description:
-          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">点击确认创建您的 API 密钥。</p><div style="padding: 8px 12px; background: #fee2e2; border-left: 3px solid #ef4444; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>⚠️ 重要：</b><ul style="margin: 8px 0 0 16px;"><li>创建后请立即复制密钥（sk-xxx）</li><li>密钥只显示一次，丢失需重新生成</li></ul></div><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>🚀 如何使用：</b><br/>将密钥配置到支持 OpenAI 接口的任何客户端（如 ChatBox、OpenCat 等），即可开始使用！</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">👉 点击"创建"按钮</p></div>'
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">点击创建后会生成完整 API Key。</p><div style="padding: 8px 12px; background: #fee2e2; border-left: 3px solid #ef4444; border-radius: 4px; font-size: 13px; margin-bottom: 12px;"><b>重要：</b><ul style="margin: 8px 0 0 16px;"><li>创建后立刻复制 sk-xxx</li><li>Base URL 填页面上的 API 地址</li><li>Claude/Codex 常用请求路径是 /v1/messages</li></ul></div><p style="margin-top: 12px; color: #10b981; font-weight: 600;">点击“创建”按钮</p></div>'
+      },
+      usage: {
+        title: '查看使用记录',
+        description:
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">使用记录会显示每次请求的模型、Token、费用和状态。</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>排查问题：</b>客户端调用失败时，先来这里看是否产生请求、是否扣费、报错在哪一步。</p><p style="margin-top: 12px; color: #10b981; font-weight: 600;">点击左侧“使用记录”继续</p></div>'
+      },
+      subscriptions: {
+        title: '我的订阅',
+        description:
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">这里查看你当前有效的订阅、到期时间和使用进度。</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>续费：</b>订阅快到期时，可以从这里或充值页进入续费。</p></div>'
+      },
+      orders: {
+        title: '我的订单',
+        description:
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">订单页记录充值、订阅、支付状态和到账结果。</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>支付后没到账：</b>先在这里确认订单是否已支付、是否完成到账处理。</p></div>'
+      },
+      profile: {
+        title: '个人资料',
+        description:
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">个人资料用于管理账号信息和安全设置。</p><p style="padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #10b981; border-radius: 4px; font-size: 13px;"><b>建议：</b>确认邮箱和密码可用，后续找回账号会更稳。</p></div>'
+      },
+      restartGuide: {
+        title: '随时重新打开引导',
+        description:
+          '<div style="line-height: 1.7;"><p style="margin-bottom: 12px;">如果之后忘了怎么用，点右上角头像菜单里的“重新查看新手引导”即可重新播放。</p><p style="padding: 8px 12px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 13px;"><b>记住三件事：</b>充值/订阅、创建 API Key、把 Base URL + API Key 填进客户端。</p></div>'
       }
     }
   },

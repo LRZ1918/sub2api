@@ -4830,6 +4830,21 @@
                 <div class="flex items-center justify-between gap-4 px-4 py-3">
                   <div>
                     <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                      {{ t('admin.settings.userPortal.imageWorkbenchEntry') }}
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ t('admin.settings.userPortal.imageWorkbenchEntryHint') }}
+                    </p>
+                  </div>
+                  <Toggle
+                    v-model="form.image_workbench_enabled"
+                    data-testid="user-portal-toggle-image-workbench"
+                  />
+                </div>
+
+                <div class="flex items-center justify-between gap-4 px-4 py-3">
+                  <div>
+                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
                       {{ t('admin.settings.userPortal.availableChannelsEntry') }}
                     </p>
                     <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -6846,6 +6861,8 @@ const form = reactive<SettingsForm>({
   channel_monitor_default_interval_seconds: 60,
   // Available Channels feature switch
   available_channels_enabled: false,
+  // Image Workbench feature switch
+  image_workbench_enabled: false,
   // Affiliate (邀请返利) feature switch
   affiliate_enabled: false,
 });
@@ -6862,6 +6879,11 @@ const userPortalCoreMenu = computed(() => [
   },
   { key: "redeem", label: t("nav.redeem"), enabled: true },
   { key: "profile", label: t("nav.profile"), enabled: true },
+  {
+    key: "image-workbench",
+    label: t("nav.imageWorkbench"),
+    enabled: form.image_workbench_enabled,
+  },
   {
     key: "model-square",
     label: t("nav.modelSquare"),
@@ -6942,6 +6964,15 @@ const userPortalDependencies = computed(() => [
       : t("admin.settings.userPortal.statusOptional"),
   },
   {
+    key: "image-workbench",
+    label: t("nav.imageWorkbench"),
+    hint: t("admin.settings.userPortal.imageWorkbenchDependency"),
+    ready: form.image_workbench_enabled,
+    status: form.image_workbench_enabled
+      ? t("admin.settings.userPortal.statusEnabled")
+      : t("admin.settings.userPortal.statusDisabled"),
+  },
+  {
     key: "available-channels",
     label: t("nav.availableChannels"),
     hint: t("admin.settings.userPortal.availableChannelsDependency"),
@@ -6998,12 +7029,15 @@ function applyEnhancedUserPortalPreset() {
   form.default_concurrency = 5;
   form.payment_enabled = true;
   form.payment_min_amount = 1;
-  form.payment_max_amount = 10000;
+  form.payment_max_amount = 1000;
   form.payment_max_pending_orders = 3;
+  form.purchase_subscription_enabled = false;
+  form.purchase_subscription_url = "";
   if (!form.payment_enabled_types.includes("alipay")) {
     form.payment_enabled_types = [...form.payment_enabled_types, "alipay"];
   }
   form.available_channels_enabled = true;
+  form.image_workbench_enabled = true;
   form.channel_monitor_enabled = true;
   form.affiliate_enabled = true;
 
@@ -8114,6 +8148,8 @@ async function saveSettings() {
         Number(form.channel_monitor_default_interval_seconds) || 60,
       // Available Channels feature switch
       available_channels_enabled: form.available_channels_enabled,
+      // Image Workbench feature switch
+      image_workbench_enabled: form.image_workbench_enabled,
       // Affiliate (邀请返利) feature switch
       affiliate_enabled: form.affiliate_enabled,
     };

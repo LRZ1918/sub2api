@@ -350,6 +350,76 @@ describe('PaymentView purchase entry modes', () => {
     expect(wrapper.text()).toContain('purchase.ordersPanelEmpty')
   })
 
+  it('shows payment help text in the hero and renders URLs as clickable links', async () => {
+    getCheckoutInfo.mockResolvedValue({
+      data: {
+        ...checkoutInfoFixture().data,
+        help_text: '店铺链接：https://pay.example.com/shop/demo\n付款后请备注邮箱',
+      },
+    })
+
+    const wrapper = mountPaymentView()
+    await flushPromises()
+
+    const heroHelp = wrapper.find('[data-testid="purchase-hero-help"]')
+    expect(heroHelp.exists()).toBe(true)
+    expect(heroHelp.text()).toContain('purchase.helpTitle')
+    expect(heroHelp.text()).toContain('付款后请备注邮箱')
+
+    const link = heroHelp.find('a[href="https://pay.example.com/shop/demo"]')
+    expect(link.exists()).toBe(true)
+    expect(link.attributes('target')).toBe('_blank')
+    expect(link.attributes('rel')).toContain('noopener')
+  })
+
+  it('replaces the unavailable payment method module with purchase instructions when a shop URL is configured', async () => {
+    setPublicSettings({
+      payment_enabled: true,
+      purchase_subscription_enabled: false,
+      purchase_subscription_url: 'https://pay.example.com/shop/demo',
+    })
+    getCheckoutInfo.mockResolvedValue(checkoutInfoWithoutMethodsFixture())
+
+    const wrapper = mountPaymentView()
+    await flushPromises()
+
+    const instructions = wrapper.find('[data-testid="purchase-payment-instructions"]')
+    expect(instructions.exists()).toBe(true)
+    expect(instructions.text()).toContain('purchase.helpTitle')
+    expect(instructions.text()).toContain('purchase.externalShopDefaultHint')
+    expect(instructions.find('a[href="https://pay.example.com/shop/demo"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="fallback-payment-method-alipay"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="fallback-payment-method-paypal"]').exists()).toBe(false)
+  })
+
+  it('filters quick recharge amounts by the available payment method limits', async () => {
+    getCheckoutInfo.mockResolvedValue({
+      data: {
+        ...checkoutInfoFixture().data,
+        methods: {
+          alipay: {
+            daily_limit: 0,
+            daily_used: 0,
+            daily_remaining: 0,
+            single_min: 1,
+            single_max: 1000,
+            fee_rate: 0,
+            available: true,
+          },
+        },
+        global_min: 1,
+        global_max: 1000,
+      },
+    })
+
+    const wrapper = mountPaymentView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('¥10')
+    expect(wrapper.text()).toContain('¥1000')
+    expect(wrapper.text()).not.toContain('¥2000')
+  })
+
   it('filters purchase-page orders by status inside the inline panel', async () => {
     const wrapper = mountPaymentView()
     await flushPromises()

@@ -64,7 +64,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-if="allEndpoints.length > 0" class="flex flex-wrap gap-2">
+  <div v-if="allEndpoints.length > 0" class="flex flex-wrap gap-2" data-tour="keys-endpoints">
     <div
       v-for="(item, index) in allEndpoints"
       :key="index"

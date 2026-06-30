@@ -1,4 +1,21 @@
 import { DriveStep } from 'driver.js'
+import type { PublicSettings } from '@/types'
+
+export interface UserOnboardingOptions {
+  settings?: Partial<Pick<
+    PublicSettings,
+    | 'payment_enabled'
+    | 'purchase_subscription_enabled'
+    | 'available_channels_enabled'
+    | 'api_base_url'
+    | 'custom_endpoints'
+  >> | null
+  simpleMode?: boolean
+}
+
+function enabled(value: boolean | undefined, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback
+}
 
 /**
  * 管理员完整引导流程
@@ -244,19 +261,72 @@ export const getAdminSteps = (t: (key: string) => string, isSimpleMode = false):
 }
 
 /**
- * 普通用户引导流程
+ * 普通用户引导流程。
  */
-export const getUserSteps = (t: (key: string) => string): DriveStep[] => [
-  {
-    popover: {
-      title: t('onboarding.user.welcome.title'),
-      description: t('onboarding.user.welcome.description'),
-      align: 'center',
-      nextBtnText: t('onboarding.user.welcome.nextBtn'),
-      prevBtnText: t('onboarding.user.welcome.prevBtn')
+export const getUserSteps = (
+  t: (key: string) => string,
+  options: UserOnboardingOptions = {},
+): DriveStep[] => {
+  const settings = options.settings
+  const simpleMode = options.simpleMode === true
+  const paymentEnabled = enabled(settings?.payment_enabled, true)
+  const purchaseSubscriptionEnabled = enabled(settings?.purchase_subscription_enabled, false)
+  const availableChannelsEnabled = enabled(settings?.available_channels_enabled, false)
+  const hasApiEndpoints = Boolean(settings?.api_base_url?.trim())
+    || Boolean(settings?.custom_endpoints?.length)
+  const showPurchase = !simpleMode && (paymentEnabled || purchaseSubscriptionEnabled)
+  const showOrders = !simpleMode && paymentEnabled
+  const showModelSquare = !simpleMode && availableChannelsEnabled
+
+  const steps: DriveStep[] = [
+    {
+      popover: {
+        title: t('onboarding.user.welcome.title'),
+        description: t('onboarding.user.welcome.description'),
+        align: 'center',
+        nextBtnText: t('onboarding.user.welcome.nextBtn'),
+        prevBtnText: t('onboarding.user.welcome.prevBtn')
+      }
+    },
+    {
+      element: '[data-tour="sidebar-dashboard"]',
+      popover: {
+        title: t('onboarding.user.dashboard.title'),
+        description: t('onboarding.user.dashboard.description'),
+        side: 'right',
+        align: 'center',
+        showButtons: ['close']
+      }
     }
-  },
-  {
+  ]
+
+  if (showPurchase) {
+    steps.push({
+      element: '[data-tour="sidebar-purchase"]',
+      popover: {
+        title: t('onboarding.user.purchase.title'),
+        description: t('onboarding.user.purchase.description'),
+        side: 'right',
+        align: 'center',
+        showButtons: ['close']
+      }
+    })
+  }
+
+  if (showModelSquare) {
+    steps.push({
+      element: '[data-tour="sidebar-model-square"]',
+      popover: {
+        title: t('onboarding.user.modelSquare.title'),
+        description: t('onboarding.user.modelSquare.description'),
+        side: 'right',
+        align: 'center',
+        showButtons: ['close']
+      }
+    })
+  }
+
+  steps.push({
     element: '[data-tour="sidebar-my-keys"]',
     popover: {
       title: t('onboarding.user.keyManage.title'),
@@ -265,45 +335,119 @@ export const getUserSteps = (t: (key: string) => string): DriveStep[] => [
       align: 'center',
       showButtons: ['close']
     }
-  },
-  {
-    element: '[data-tour="keys-create-btn"]',
-    popover: {
-      title: t('onboarding.user.createKey.title'),
-      description: t('onboarding.user.createKey.description'),
-      side: 'bottom',
-      align: 'end',
-      showButtons: ['close']
-    }
-  },
-  {
-    element: '[data-tour="key-form-name"]',
-    popover: {
-      title: t('onboarding.user.keyName.title'),
-      description: t('onboarding.user.keyName.description'),
-      side: 'right',
-      align: 'start',
-      showButtons: ['next', 'previous']
-    }
-  },
-  {
-    element: '[data-tour="key-form-group"]',
-    popover: {
-      title: t('onboarding.user.keyGroup.title'),
-      description: t('onboarding.user.keyGroup.description'),
-      side: 'right',
-      align: 'start',
-      showButtons: ['next', 'previous']
-    }
-  },
-  {
-    element: '[data-tour="key-form-submit"]',
-    popover: {
-      title: t('onboarding.user.keySubmit.title'),
-      description: t('onboarding.user.keySubmit.description'),
-      side: 'left',
-      align: 'center',
-      showButtons: ['close']
-    }
+  })
+
+  if (hasApiEndpoints) {
+    steps.push({
+      element: '[data-tour="keys-endpoints"]',
+      popover: {
+        title: t('onboarding.user.apiEndpoint.title'),
+        description: t('onboarding.user.apiEndpoint.description'),
+        side: 'bottom',
+        align: 'start',
+        showButtons: ['next', 'previous']
+      }
+    })
   }
-]
+
+  steps.push(
+    {
+      element: '[data-tour="keys-create-btn"]',
+      popover: {
+        title: t('onboarding.user.createKey.title'),
+        description: t('onboarding.user.createKey.description'),
+        side: 'bottom',
+        align: 'end',
+        showButtons: ['close']
+      }
+    },
+    {
+      element: '[data-tour="key-form-name"]',
+      popover: {
+        title: t('onboarding.user.keyName.title'),
+        description: t('onboarding.user.keyName.description'),
+        side: 'right',
+        align: 'start',
+        showButtons: ['next', 'previous']
+      }
+    },
+    {
+      element: '[data-tour="key-form-group"]',
+      popover: {
+        title: t('onboarding.user.keyGroup.title'),
+        description: t('onboarding.user.keyGroup.description'),
+        side: 'right',
+        align: 'start',
+        showButtons: ['next', 'previous']
+      }
+    },
+    {
+      element: '[data-tour="key-form-submit"]',
+      popover: {
+        title: t('onboarding.user.keySubmit.title'),
+        description: t('onboarding.user.keySubmit.description'),
+        side: 'left',
+        align: 'center',
+        showButtons: ['close']
+      }
+    },
+    {
+      element: '[data-tour="sidebar-usage"]',
+      popover: {
+        title: t('onboarding.user.usage.title'),
+        description: t('onboarding.user.usage.description'),
+        side: 'right',
+        align: 'center',
+        showButtons: ['close']
+      }
+    },
+    {
+      element: '[data-tour="sidebar-subscriptions"]',
+      popover: {
+        title: t('onboarding.user.subscriptions.title'),
+        description: t('onboarding.user.subscriptions.description'),
+        side: 'right',
+        align: 'center',
+        showButtons: ['close']
+      }
+    },
+  )
+
+  if (showOrders) {
+    steps.push({
+      element: '[data-tour="sidebar-orders"]',
+      popover: {
+        title: t('onboarding.user.orders.title'),
+        description: t('onboarding.user.orders.description'),
+        side: 'right',
+        align: 'center',
+        showButtons: ['close']
+      }
+    })
+  }
+
+  steps.push(
+    {
+      element: '[data-tour="sidebar-profile"]',
+      popover: {
+        title: t('onboarding.user.profile.title'),
+        description: t('onboarding.user.profile.description'),
+        side: 'right',
+        align: 'center',
+        showButtons: ['close']
+      }
+    },
+    {
+      element: '[data-tour="header-user-menu"]',
+      popover: {
+        title: t('onboarding.user.restartGuide.title'),
+        description: t('onboarding.user.restartGuide.description'),
+        side: 'bottom',
+        align: 'end',
+        showButtons: ['next', 'previous']
+      }
+    },
+  )
+
+  return steps
+}

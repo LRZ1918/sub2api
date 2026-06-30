@@ -66,6 +66,7 @@
             <input
               v-model="searchQuery"
               data-testid="model-square-search"
+              data-tour="model-square-search"
               type="text"
               class="input"
               :placeholder="t('modelSquare.searchPlaceholder')"

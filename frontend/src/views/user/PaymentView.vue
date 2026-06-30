@@ -36,13 +36,43 @@
         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ t('purchase.notEnabledDesc') }}</p>
       </div>
     </div>
-    <div v-else class="purchase-native mx-auto max-w-5xl space-y-6">
+    <div v-else class="purchase-native mx-auto max-w-5xl space-y-6" data-tour="purchase-entry">
         <div class="purchase-hero rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-dark-700 dark:bg-dark-900">
           <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div class="min-w-0">
+            <div class="min-w-0 flex-1">
               <p class="text-sm font-semibold text-primary-600 dark:text-primary-400">{{ t('purchase.securePaymentTitle') }}</p>
               <h1 class="mt-2 text-2xl font-bold tracking-normal text-gray-950 dark:text-white">{{ t('purchase.heroTitle') }}</h1>
               <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ t('purchase.heroDescription') }}</p>
+              <div
+                v-if="showHeroHelp"
+                data-testid="purchase-hero-help"
+                class="mt-4 rounded-xl border border-primary-100 bg-primary-50/80 px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-primary-500/20 dark:bg-primary-500/10 dark:text-gray-200"
+              >
+                <p class="mb-2 text-xs font-semibold text-primary-700 dark:text-primary-300">{{ t('purchase.helpTitle') }}</p>
+                <div class="space-y-1.5">
+                  <p
+                    v-for="(line, lineIndex) in heroHelpLines"
+                    :key="lineIndex"
+                    class="break-words leading-relaxed"
+                  >
+                    <template
+                      v-for="(segment, segmentIndex) in line"
+                      :key="`${lineIndex}-${segmentIndex}`"
+                    >
+                      <a
+                        v-if="segment.href"
+                        :href="segment.href"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="font-semibold text-primary-600 underline underline-offset-2 hover:text-primary-700 dark:text-primary-300 dark:hover:text-primary-200"
+                      >
+                        {{ segment.text }}
+                      </a>
+                      <span v-else>{{ segment.text }}</span>
+                    </template>
+                  </p>
+                </div>
+              </div>
             </div>
             <div class="flex shrink-0 gap-2">
               <button
@@ -180,7 +210,7 @@
               <p class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('purchase.rechargeAmount') }}</p>
               <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
                 <button
-                  v-for="quickAmount in quickAmounts"
+                  v-for="quickAmount in visibleQuickAmounts"
                   :key="quickAmount"
                   type="button"
                   class="rounded-xl border px-4 py-3 text-sm font-semibold transition"
@@ -198,8 +228,8 @@
                 inputmode="decimal"
                 class="input mt-2"
                 :min="globalMinAmount || 1"
-                :max="globalMaxAmount || 1000"
-                placeholder="1 - 1000"
+                :max="globalMaxAmount || undefined"
+                :placeholder="amountPlaceholder"
               />
               <p v-if="amountError" class="mt-2 text-xs text-amber-600 dark:text-amber-300">{{ amountError }}</p>
             </div>
@@ -211,42 +241,74 @@
               />
             </div>
             <div v-else class="card p-6">
-              <p class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('payment.paymentMethod') }}</p>
-              <div class="grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  disabled
-                  data-testid="fallback-payment-method-alipay"
-                  class="flex h-[60px] cursor-not-allowed items-center justify-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 text-gray-500 opacity-75 dark:border-dark-700 dark:bg-dark-800/50 dark:text-gray-400"
-                >
-                  <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#02A9F1] text-base font-bold text-white">支</span>
-                  <span class="flex flex-col items-start leading-tight">
-                    <span class="text-base font-semibold">{{ t('payment.methods.alipay') }}</span>
-                    <span class="text-[11px]">{{ t('purchase.alipayPendingConfig') }}</span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  disabled
-                  data-testid="fallback-payment-method-paypal"
-                  class="flex h-[60px] cursor-not-allowed items-center justify-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 text-gray-500 opacity-75 dark:border-dark-700 dark:bg-dark-800/50 dark:text-gray-400"
-                >
-                  <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#003087] text-xs font-bold text-white">PP</span>
-                  <span class="flex flex-col items-start leading-tight">
-                    <span class="text-base font-semibold">{{ t('purchase.paypalLabel') }}</span>
-                    <span class="text-[11px]">{{ t('purchase.paypalNotSupported') }}</span>
-                  </span>
-                </button>
+              <div
+                v-if="paymentInstructionLines.length"
+                data-testid="purchase-payment-instructions"
+                class="rounded-xl border border-primary-100 bg-primary-50/80 px-4 py-3 text-sm text-gray-700 dark:border-primary-500/20 dark:bg-primary-500/10 dark:text-gray-200"
+              >
+                <p class="mb-2 text-sm font-semibold text-primary-700 dark:text-primary-300">{{ t('purchase.helpTitle') }}</p>
+                <div class="space-y-1.5">
+                  <p
+                    v-for="(line, lineIndex) in paymentInstructionLines"
+                    :key="`recharge-${lineIndex}`"
+                    class="break-words leading-relaxed"
+                  >
+                    <template
+                      v-for="(segment, segmentIndex) in line"
+                      :key="`recharge-${lineIndex}-${segmentIndex}`"
+                    >
+                      <a
+                        v-if="segment.href"
+                        :href="segment.href"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="font-semibold text-primary-600 underline underline-offset-2 hover:text-primary-700 dark:text-primary-300 dark:hover:text-primary-200"
+                      >
+                        {{ segment.text }}
+                      </a>
+                      <span v-else>{{ segment.text }}</span>
+                    </template>
+                  </p>
+                </div>
               </div>
-              <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center dark:border-amber-500/30 dark:bg-amber-500/10">
-                <Icon name="creditCard" size="lg" class="mx-auto mb-3 text-amber-500 dark:text-amber-300" />
-                <p class="text-sm font-semibold text-gray-900 dark:text-white">
-                  {{ t('purchase.paymentMethodsNotConfiguredTitle') }}
-                </p>
-                <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600 dark:text-gray-300">
-                  {{ t('purchase.paymentMethodsNotConfiguredDesc') }}
-                </p>
-              </div>
+              <template v-else>
+                <p class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('payment.paymentMethod') }}</p>
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    disabled
+                    data-testid="fallback-payment-method-alipay"
+                    class="flex h-[60px] cursor-not-allowed items-center justify-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 text-gray-500 opacity-75 dark:border-dark-700 dark:bg-dark-800/50 dark:text-gray-400"
+                  >
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#02A9F1] text-base font-bold text-white">支</span>
+                    <span class="flex flex-col items-start leading-tight">
+                      <span class="text-base font-semibold">{{ t('payment.methods.alipay') }}</span>
+                      <span class="text-[11px]">{{ t('purchase.alipayPendingConfig') }}</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled
+                    data-testid="fallback-payment-method-paypal"
+                    class="flex h-[60px] cursor-not-allowed items-center justify-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 text-gray-500 opacity-75 dark:border-dark-700 dark:bg-dark-800/50 dark:text-gray-400"
+                  >
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#003087] text-xs font-bold text-white">PP</span>
+                    <span class="flex flex-col items-start leading-tight">
+                      <span class="text-base font-semibold">{{ t('purchase.paypalLabel') }}</span>
+                      <span class="text-[11px]">{{ t('purchase.paypalNotSupported') }}</span>
+                    </span>
+                  </button>
+                </div>
+                <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center dark:border-amber-500/30 dark:bg-amber-500/10">
+                  <Icon name="creditCard" size="lg" class="mx-auto mb-3 text-amber-500 dark:text-amber-300" />
+                  <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                    {{ t('purchase.paymentMethodsNotConfiguredTitle') }}
+                  </p>
+                  <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600 dark:text-gray-300">
+                    {{ t('purchase.paymentMethodsNotConfiguredDesc') }}
+                  </p>
+                </div>
+              </template>
             </div>
             <div v-if="validAmount > 0" class="card p-6">
               <div class="space-y-2 text-sm">
@@ -359,40 +421,72 @@
                 />
               </div>
               <div v-else class="card p-6">
-                <p class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('payment.paymentMethod') }}</p>
-                <div class="grid gap-3 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    disabled
-                    class="flex h-[60px] cursor-not-allowed items-center justify-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 text-gray-500 opacity-75 dark:border-dark-700 dark:bg-dark-800/50 dark:text-gray-400"
-                  >
-                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#02A9F1] text-base font-bold text-white">支</span>
-                    <span class="flex flex-col items-start leading-tight">
-                      <span class="text-base font-semibold">{{ t('payment.methods.alipay') }}</span>
-                      <span class="text-[11px]">{{ t('purchase.alipayPendingConfig') }}</span>
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled
-                    class="flex h-[60px] cursor-not-allowed items-center justify-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 text-gray-500 opacity-75 dark:border-dark-700 dark:bg-dark-800/50 dark:text-gray-400"
-                  >
-                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#003087] text-xs font-bold text-white">PP</span>
-                    <span class="flex flex-col items-start leading-tight">
-                      <span class="text-base font-semibold">{{ t('purchase.paypalLabel') }}</span>
-                      <span class="text-[11px]">{{ t('purchase.paypalNotSupported') }}</span>
-                    </span>
-                  </button>
+                <div
+                  v-if="paymentInstructionLines.length"
+                  data-testid="purchase-payment-instructions"
+                  class="rounded-xl border border-primary-100 bg-primary-50/80 px-4 py-3 text-sm text-gray-700 dark:border-primary-500/20 dark:bg-primary-500/10 dark:text-gray-200"
+                >
+                  <p class="mb-2 text-sm font-semibold text-primary-700 dark:text-primary-300">{{ t('purchase.helpTitle') }}</p>
+                  <div class="space-y-1.5">
+                    <p
+                      v-for="(line, lineIndex) in paymentInstructionLines"
+                      :key="`subscription-${lineIndex}`"
+                      class="break-words leading-relaxed"
+                    >
+                      <template
+                        v-for="(segment, segmentIndex) in line"
+                        :key="`subscription-${lineIndex}-${segmentIndex}`"
+                      >
+                        <a
+                          v-if="segment.href"
+                          :href="segment.href"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="font-semibold text-primary-600 underline underline-offset-2 hover:text-primary-700 dark:text-primary-300 dark:hover:text-primary-200"
+                        >
+                          {{ segment.text }}
+                        </a>
+                        <span v-else>{{ segment.text }}</span>
+                      </template>
+                    </p>
+                  </div>
                 </div>
-                <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center dark:border-amber-500/30 dark:bg-amber-500/10">
-                  <Icon name="creditCard" size="lg" class="mx-auto mb-3 text-amber-500 dark:text-amber-300" />
-                  <p class="text-sm font-semibold text-gray-900 dark:text-white">
-                    {{ t('purchase.paymentMethodsNotConfiguredTitle') }}
-                  </p>
-                  <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600 dark:text-gray-300">
-                    {{ t('purchase.paymentMethodsNotConfiguredDesc') }}
-                  </p>
-                </div>
+                <template v-else>
+                  <p class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{{ t('payment.paymentMethod') }}</p>
+                  <div class="grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      disabled
+                      class="flex h-[60px] cursor-not-allowed items-center justify-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 text-gray-500 opacity-75 dark:border-dark-700 dark:bg-dark-800/50 dark:text-gray-400"
+                    >
+                      <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#02A9F1] text-base font-bold text-white">支</span>
+                      <span class="flex flex-col items-start leading-tight">
+                        <span class="text-base font-semibold">{{ t('payment.methods.alipay') }}</span>
+                        <span class="text-[11px]">{{ t('purchase.alipayPendingConfig') }}</span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      class="flex h-[60px] cursor-not-allowed items-center justify-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 text-gray-500 opacity-75 dark:border-dark-700 dark:bg-dark-800/50 dark:text-gray-400"
+                    >
+                      <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#003087] text-xs font-bold text-white">PP</span>
+                      <span class="flex flex-col items-start leading-tight">
+                        <span class="text-base font-semibold">{{ t('purchase.paypalLabel') }}</span>
+                        <span class="text-[11px]">{{ t('purchase.paypalNotSupported') }}</span>
+                      </span>
+                    </button>
+                  </div>
+                  <div class="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center dark:border-amber-500/30 dark:bg-amber-500/10">
+                    <Icon name="creditCard" size="lg" class="mx-auto mb-3 text-amber-500 dark:text-amber-300" />
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                      {{ t('purchase.paymentMethodsNotConfiguredTitle') }}
+                    </p>
+                    <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600 dark:text-gray-300">
+                      {{ t('purchase.paymentMethodsNotConfiguredDesc') }}
+                    </p>
+                  </div>
+                </template>
               </div>
               <div v-if="selectedPlan.price > 0" class="card p-6">
                 <div class="space-y-2 text-sm">
@@ -475,12 +569,11 @@
             </template>
           </template>
         </template>
-        <div v-if="(checkout.help_text || checkout.help_image_url) && paymentPhase === 'select' && !selectedPlan" class="card p-4">
+        <div v-if="checkout.help_image_url && paymentPhase === 'select' && !selectedPlan" class="card p-4">
           <div class="flex flex-col items-center gap-3">
             <img v-if="checkout.help_image_url" :src="checkout.help_image_url" alt=""
               class="h-40 max-w-full cursor-pointer rounded-lg object-contain transition-opacity hover:opacity-80"
               @click="previewImage = checkout.help_image_url" />
-            <p v-if="checkout.help_text" class="text-center text-sm text-gray-500 dark:text-gray-400">{{ checkout.help_text }}</p>
           </div>
         </div>
     </div>
@@ -577,6 +670,65 @@ const externalPurchaseUrl = computed(() => {
     String(locale.value || ''),
   )
 })
+
+interface HelpTextSegment {
+  text: string
+  href?: string
+}
+
+const configuredPaymentHelpText = computed(() => (checkout.value.help_text || '').trim())
+const defaultExternalShopHelpText = computed(() => {
+  if (!externalPurchaseRawUrl.value) return ''
+  return `${t('purchase.externalShopDefaultHint')}\n${t('purchase.externalShopLinkLabel')}：${externalPurchaseRawUrl.value}`
+})
+const heroHelpLines = computed<HelpTextSegment[][]>(() => {
+  return parseHelpText(configuredPaymentHelpText.value)
+})
+const paymentInstructionLines = computed<HelpTextSegment[][]>(() => {
+  return parseHelpText(configuredPaymentHelpText.value || defaultExternalShopHelpText.value)
+})
+const showHeroHelp = computed(() => heroHelpLines.value.length > 0 && enabledMethods.value.length > 0)
+
+function parseHelpText(helpText: string): HelpTextSegment[][] {
+  return helpText
+    .split(/\r?\n/)
+    .map(line => parseHelpTextLine(line.trim()))
+    .filter(line => line.length > 0)
+}
+
+function parseHelpTextLine(line: string): HelpTextSegment[] {
+  if (!line) return []
+
+  const segments: HelpTextSegment[] = []
+  const urlPattern = /https?:\/\/[^\s<>"']+/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = urlPattern.exec(line)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ text: line.slice(lastIndex, match.index) })
+    }
+
+    const rawURL = match[0]
+    const trailingMatch = rawURL.match(/[),.;!?，。；！？、）]+$/)
+    const trailing = trailingMatch?.[0] || ''
+    const href = trailing ? rawURL.slice(0, -trailing.length) : rawURL
+
+    if (href) {
+      segments.push({ text: href, href })
+    }
+    if (trailing) {
+      segments.push({ text: trailing })
+    }
+    lastIndex = match.index + rawURL.length
+  }
+
+  if (lastIndex < line.length) {
+    segments.push({ text: line.slice(lastIndex) })
+  }
+
+  return segments
+}
 
 function getDaysRemaining(expiresAt: string): number {
   const diff = new Date(expiresAt).getTime() - Date.now()
@@ -945,6 +1097,18 @@ const globalMaxAmount = computed(() => {
   if (limits.length === 0) return 0
   if (limits.some(limit => limit.single_max <= 0)) return 0
   return Math.max(...limits.map(limit => limit.single_max))
+})
+const visibleQuickAmounts = computed(() => quickAmounts.filter((value) => {
+  const min = globalMinAmount.value
+  const max = globalMaxAmount.value
+  if (min > 0 && value < min) return false
+  if (max > 0 && value > max) return false
+  return true
+}))
+const amountPlaceholder = computed(() => {
+  const min = globalMinAmount.value > 0 ? globalMinAmount.value : 1
+  const max = globalMaxAmount.value > 0 ? globalMaxAmount.value : 1000
+  return `${min} - ${max}`
 })
 
 // Selected method's limits (for validation and error messages)

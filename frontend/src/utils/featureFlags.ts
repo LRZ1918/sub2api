@@ -104,6 +104,11 @@ export const FeatureFlags = {
     mode: 'opt-in',
     label: 'Available Channels',
   }),
+  imageWorkbench: defineFlag({
+    key: 'image_workbench_enabled',
+    mode: 'opt-in',
+    label: 'Image Workbench',
+  }),
   payment: defineFlag({
     key: 'payment_enabled',
     mode: 'opt-out',

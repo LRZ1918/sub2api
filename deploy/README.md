@@ -1,11 +1,14 @@
 # Sub2API Deployment Files
 
-This directory contains files for deploying Sub2API on Linux servers.
+This directory contains files for deploying Sub2API with Docker Compose or binary installation.
 
 ## Deployment Methods
 
 | Method | Best For | Setup Wizard |
 |--------|----------|--------------|
+| **Windows Docker + Tunnel** | Windows host with public HTTPS through Cloudflare Tunnel/frp/ngrok | Not needed (auto-setup) |
+| **Windows Source + Tunnel** | Windows host without Docker; build `sub2api.exe` locally and expose it through tunnel | Not needed (auto-setup) |
+| **Windows Source → Ubuntu VPS Migration** | Move the current Windows source deployment to Ubuntu VPS with short downtime | Not needed (restore package) |
 | **Docker Compose** | Quick setup, all-in-one | Not needed (auto-setup) |
 | **Binary Install** | Production servers, systemd | Web-based wizard |
 
@@ -17,10 +20,32 @@ This directory contains files for deploying Sub2API on Linux servers.
 | `docker-compose.local.yml` | Docker Compose configuration (local directories, easy migration) |
 | `docker-compose.production.yml` | Production Docker Compose template with app port bound to `127.0.0.1` |
 | `production.env.example` | Production environment template with required secret placeholders |
+| `windows-tunnel.env.example` | Windows host + intranet tunnel environment template |
+| `source-windows.env.example` | Windows source/binary deployment environment template |
 | `Caddyfile.production.example` | HTTPS reverse proxy template for production domains |
+| `WINDOWS_TUNNEL_DEPLOY_CN.md` | 中文 Windows 本机 Docker Compose + 内网穿透部署手册 |
+| `WINDOWS_SOURCE_DEPLOY_CN.md` | 中文 Windows 本机源码编译 + 内网穿透部署手册 |
+| `VPS_MIGRATION_CN.md` | 中文 Windows 当前服务器导出包 + Ubuntu VPS 一键还原迁移手册 |
+| `README_CLAUDE_DEPLOY_CN.md` | 中文迁移包入口文档，包含交给 Claude 在 VPS 上部署的完整提示词 |
 | `PRODUCTION_INPUTS_CN.md` | 中文生产上线资料清单，用于部署前收集域名、密钥、上游账号、代理和支付资料 |
 | `ops/backup.sh` | Production backup helper for `.env`, app data, PostgreSQL, and Redis |
 | `ops/healthcheck.sh` | Production health check helper for containers and `/health` |
+| `ops/prepare-windows-env.ps1` | Windows helper that creates `windows-tunnel.env` with random secrets |
+| `ops/backup.ps1` | Windows production backup helper for `windows-tunnel.env`, app data, PostgreSQL, and Redis |
+| `ops/healthcheck.ps1` | Windows production health check helper for containers and `/health` |
+| `ops/prepare-source-windows-env.ps1` | Windows helper that creates `source-windows.env` with random secrets |
+| `ops/build-source-windows.ps1` | Windows source build helper for frontend and embedded backend binary |
+| `ops/start-source-windows-deps.ps1` | Windows helper that starts local portable PostgreSQL and Garnet dependencies |
+| `ops/run-source-windows.ps1` | Windows source/binary runtime helper |
+| `ops/start-source-windows-tunnel.ps1` | Windows helper that starts a Cloudflare quick tunnel |
+| `ops/start-source-windows-all.ps1` | Windows helper that starts dependencies, Sub2API, tunnel, and health checks |
+| `ops/install-source-windows-autostart.ps1` | Registers a current-user scheduled task for Windows logon startup |
+| `ops/stop-source-windows.ps1` | Windows helper that stops local source deployment processes |
+| `ops/backup-source-windows.ps1` | Windows source/binary backup helper |
+| `ops/healthcheck-source-windows.ps1` | Windows source/binary health check helper |
+| `ops/export-vps-migration-package.ps1` | Windows helper that exports a plaintext VPS migration package with PostgreSQL dump, data, Linux `.env`, Caddyfile, manifest, and checksums |
+| `ops/install-vps.sh` | Ubuntu VPS restore helper for the exported migration package |
+| `ops/test-vps-migration-package.ps1` | Script-level checks for the migration package tooling and documentation |
 | `PRODUCTION_LAUNCH_CN.md` | 中文公网正式上线手册 |
 | `docker-deploy.sh` | **One-click Docker deployment script (recommended)** |
 | `.env.example` | Docker environment variables template |
@@ -34,7 +59,74 @@ This directory contains files for deploying Sub2API on Linux servers.
 
 ---
 
-## Docker Deployment (Recommended)
+## Production Deployment
+
+### Windows Source + Intranet Tunnel
+
+If Docker Desktop cannot be installed, build and run the Windows binary directly:
+
+- `WINDOWS_SOURCE_DEPLOY_CN.md`
+- `source-windows.env.example`
+- `ops/build-source-windows.ps1`
+- `ops/run-source-windows.ps1`
+
+Quick start:
+
+```powershell
+cd D:\LRZ\gpt\sub2api
+.\deploy\ops\build-source-windows.ps1
+cd .\deploy
+.\ops\prepare-source-windows-env.ps1 -FrontendUrl https://your-domain.example -AdminEmail admin@example.com
+.\ops\start-source-windows-deps.ps1
+.\ops\run-source-windows.ps1 -Detached
+.\ops\start-source-windows-tunnel.ps1
+.\ops\healthcheck-source-windows.ps1 -PublicUrl https://your-domain.example/health
+```
+
+After the runtime is prepared, the same local route can be restored with:
+
+```powershell
+.\ops\start-source-windows-all.ps1
+```
+
+To restore the service automatically when the Windows user logs in:
+
+```powershell
+.\ops\install-source-windows-autostart.ps1
+```
+
+If Windows blocks scheduled task registration for the current user, the script falls back to a Startup-folder `.cmd` launcher.
+
+`start-source-windows-tunnel.ps1` creates a temporary `trycloudflare.com` URL for smoke testing. Use a named Cloudflare Tunnel or another stable tunnel with your own HTTPS domain for production.
+
+This route still requires PostgreSQL and a Redis-compatible service on Windows or reachable from the Windows host.
+
+### Windows Host + Intranet Tunnel
+
+If the Windows computer is the server and public traffic enters through Cloudflare Tunnel, frp, or ngrok, use:
+
+- `WINDOWS_TUNNEL_DEPLOY_CN.md`
+- `windows-tunnel.env.example`
+- `docker-compose.production.yml`
+
+The intended routing is:
+
+```text
+https://your-domain
+  -> tunnel client on Windows
+  -> http://127.0.0.1:8080
+  -> docker compose sub2api service
+```
+
+Quick start:
+
+```powershell
+cd D:\LRZ\gpt\sub2api\deploy
+.\ops\prepare-windows-env.ps1 -FrontendUrl https://your-domain.example -AdminEmail admin@example.com
+New-Item -ItemType Directory -Force data,postgres_data,redis_data,backups
+docker compose --env-file .\windows-tunnel.env -f .\docker-compose.production.yml up -d
+.\ops\healthcheck.ps1 -EnvFile .\windows-tunnel.env
+```
 
 ### Method 1: One-Click Deployment (Recommended)
 

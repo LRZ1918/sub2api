@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -22,9 +23,9 @@ func TestBuildLaunchReadinessReportBlocksWhenGatewayAndPaymentAreMissing(t *test
 		APIKeys:        1,
 		Settings: launchReadinessSettings{
 			FrontendURL:                 "https://sub2api.example.com",
-			RegistrationEnabled:         false,
-			PurchaseSubscriptionEnabled: true,
-			PurchaseSubscriptionURL:     "https://sub2api.example.com/purchase",
+			RegistrationEnabled:         true,
+			PurchaseSubscriptionEnabled: false,
+			PurchaseSubscriptionURL:     "",
 			CustomMenuItems:             `[{"id":"guide","label":"Guide","url":"https://docs.example.com","visibility":"user","sort_order":0}]`,
 			AvailableChannelsEnabled:    true,
 			ChannelMonitorEnabled:       true,
@@ -111,6 +112,58 @@ func TestBuildLaunchReadinessReportRequiresProductionInputsChecklist(t *testing.
 	assertReadinessCheckValue(t, report, "deployment", "deployment_assets", "5/6")
 }
 
+func TestBuildLaunchReadinessReportAcceptsWindowsTunnelDeploymentAssets(t *testing.T) {
+	report := buildLaunchReadinessReport(launchReadinessSnapshot{
+		DeploymentFiles: map[string]bool{
+			"deploy/docker-compose.production.yml": true,
+			"deploy/windows-tunnel.env.example":    true,
+			"deploy/WINDOWS_TUNNEL_DEPLOY_CN.md":   true,
+			"deploy/PRODUCTION_INPUTS_CN.md":       true,
+			"deploy/ops/backup.ps1":                true,
+			"deploy/ops/healthcheck.ps1":           true,
+		},
+		TrustedProxies:      []string{"127.0.0.1/32"},
+		URLAllowlistEnabled: true,
+		Settings: launchReadinessSettings{
+			FrontendURL: "https://sub2api.example.com",
+		},
+	}, time.Now())
+
+	assertReadinessCheckStatus(t, report, "deployment", "deployment_assets", "pass")
+	assertReadinessCheckValue(t, report, "deployment", "deployment_assets", "6/6")
+	assertReadinessCheckStatus(t, report, "operations", "backup_script", "pass")
+	assertReadinessCheckStatus(t, report, "operations", "healthcheck_script", "pass")
+}
+
+func TestBuildLaunchReadinessReportAcceptsWindowsSourceDeploymentAssets(t *testing.T) {
+	report := buildLaunchReadinessReport(launchReadinessSnapshot{
+		DeploymentFiles: map[string]bool{
+			"deploy/WINDOWS_SOURCE_DEPLOY_CN.md":              true,
+			"deploy/source-windows.env.example":               true,
+			"deploy/PRODUCTION_INPUTS_CN.md":                  true,
+			"deploy/ops/build-source-windows.ps1":             true,
+			"deploy/ops/start-source-windows-deps.ps1":        true,
+			"deploy/ops/run-source-windows.ps1":               true,
+			"deploy/ops/start-source-windows-tunnel.ps1":      true,
+			"deploy/ops/start-source-windows-all.ps1":         true,
+			"deploy/ops/install-source-windows-autostart.ps1": true,
+			"deploy/ops/stop-source-windows.ps1":              true,
+			"deploy/ops/backup-source-windows.ps1":            true,
+			"deploy/ops/healthcheck-source-windows.ps1":       true,
+		},
+		TrustedProxies:      []string{"127.0.0.1/32"},
+		URLAllowlistEnabled: true,
+		Settings: launchReadinessSettings{
+			FrontendURL: "https://sub2api.example.com",
+		},
+	}, time.Now())
+
+	assertReadinessCheckStatus(t, report, "deployment", "deployment_assets", "pass")
+	assertReadinessCheckValue(t, report, "deployment", "deployment_assets", "12/12")
+	assertReadinessCheckStatus(t, report, "operations", "backup_script", "pass")
+	assertReadinessCheckStatus(t, report, "operations", "healthcheck_script", "pass")
+}
+
 func TestBuildLaunchReadinessReportTotpKeyFailurePointsToDeployDocs(t *testing.T) {
 	report := buildLaunchReadinessReport(launchReadinessSnapshot{
 		DeploymentFiles: map[string]bool{
@@ -167,9 +220,9 @@ func TestBuildLaunchReadinessReportMarksLaunchReadyWhenRequiredChecksPass(t *tes
 		OpsAlertRules:                  1,
 		Settings: launchReadinessSettings{
 			FrontendURL:                 "https://sub2api.example.com",
-			RegistrationEnabled:         false,
-			PurchaseSubscriptionEnabled: true,
-			PurchaseSubscriptionURL:     "https://sub2api.example.com/purchase",
+			RegistrationEnabled:         true,
+			PurchaseSubscriptionEnabled: false,
+			PurchaseSubscriptionURL:     "",
 			CustomMenuItems:             `[{"id":"guide","label":"Guide","url":"https://docs.example.com","visibility":"user","sort_order":0}]`,
 			AvailableChannelsEnabled:    true,
 			ChannelMonitorEnabled:       true,
@@ -189,7 +242,7 @@ func TestBuildLaunchReadinessReportMarksLaunchReadyWhenRequiredChecksPass(t *tes
 	}, time.Now())
 
 	if report.OverallStatus != "launch_ready" {
-		t.Fatalf("OverallStatus = %q, want launch_ready", report.OverallStatus)
+		t.Fatalf("OverallStatus = %q, want launch_ready; non-pass checks: %s", report.OverallStatus, readinessNonPassSummary(report))
 	}
 	if report.Completed != report.Total {
 		t.Fatalf("Completed = %d, Total = %d; want all checks complete", report.Completed, report.Total)
@@ -197,6 +250,18 @@ func TestBuildLaunchReadinessReportMarksLaunchReadyWhenRequiredChecksPass(t *tes
 	assertReadinessCheckStatus(t, report, "payment", "wxpay_deferred", "pass")
 	assertReadinessCheckStatus(t, report, "user_portal", "custom_user_pages", "pass")
 	assertReadinessCheckStatus(t, report, "user_portal", "model_square", "pass")
+}
+
+func readinessNonPassSummary(report launchReadinessReport) string {
+	var parts []string
+	for _, section := range report.Sections {
+		for _, check := range section.Checks {
+			if check.Status != "pass" {
+				parts = append(parts, section.ID+"/"+check.ID+"="+check.Status+"("+check.Value+")")
+			}
+		}
+	}
+	return strings.Join(parts, ", ")
 }
 
 func TestBuildLaunchReadinessReportRequiresRecentGatewaySmokeTest(t *testing.T) {
@@ -273,7 +338,7 @@ func TestBuildLaunchReadinessReportShowsRegistrationControls(t *testing.T) {
 		},
 	}, time.Now())
 
-	assertReadinessCheckStatus(t, report, "system", "registration_policy", "warn")
+	assertReadinessCheckStatus(t, report, "system", "registration_policy", "pass")
 	assertReadinessCheckStatus(t, report, "system", "registration_email_verification", "warn")
 	assertReadinessCheckValue(t, report, "system", "registration_email_verification", "已开启，SMTP 未配置")
 	assertReadinessCheckStatus(t, report, "system", "registration_invitation_code", "pass")
